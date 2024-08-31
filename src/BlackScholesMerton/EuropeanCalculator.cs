@@ -26,34 +26,40 @@ public class EuropeanCalculator
         Sigma = sigma;
         T = t;
 
-        D1 = Math.Abs(s - k) < 1e-6
-            ? (r / sigma + sigma / 2) * Math.Sqrt(t)
-            : (Math.Log(s / k) + t * (r + sigma * sigma / 2)) / sigma / Math.Sqrt(t);
+        D1 = Math.Abs(S - K) < 1e-6
+            ? (R / Sigma + Sigma / 2) * Math.Sqrt(T)
+            : (Math.Log(S / K) + T * (R + Sigma * Sigma / 2)) / Sigma / Math.Sqrt(T);
 
-        D2 = D1 - sigma * Math.Sqrt(t);
+        D2 = D1 - Sigma * Math.Sqrt(T);
+
+        var nd2 = N(D2);
+        var ndm2 = N(-D2);
+        
+        CallDelta = N(D1);
+        PutDelta = CallDelta - 1;
+
+        var discount = Math.Exp(-R * T);
+        var discountedK = K * discount;
 
         //BSM call option price
-        CallPrice = S * N(D1) - K * Math.Exp(-R * T) * N(D2);
+        CallPrice = S * CallDelta - discountedK * nd2;
 
         //according to call-put european options parity 
         // c + k*exp(-r*t) = p + s
-        PutPrice = CallPrice + K * Math.Exp(-R * T) - S;
-
-        CallDelta = N(D1);
-        PutDelta = N(D1) - 1;
+        PutPrice = CallPrice + discountedK - S;
 
         var nPrimeD1 = Math.Exp(-D1 * D1 / 2) / Math.Sqrt(2 * Math.PI);
 
         var thetaFirstPart = -S * nPrimeD1 * Sigma / 2 / Math.Sqrt(T);
-        CallTheta = thetaFirstPart - R * K * Math.Exp(-R * T) * N(D2);
-        PutTheta = thetaFirstPart + R * K * Math.Exp(-R * T) * N(-D2);
+        CallTheta = thetaFirstPart - R * discountedK * nd2;
+        PutTheta = thetaFirstPart + R * discountedK * ndm2;
 
         Gamma = nPrimeD1 / Sigma / S / Math.Sqrt(T);
 
         Vega = S * Math.Sqrt(T) * nPrimeD1;
 
-        CallRho = K * T * Math.Exp(-R * T) * N(D2);
-        PutRho = -K * T * Math.Exp(R * T) * N(-D2);
+        CallRho = T * discountedK * nd2;
+        PutRho = -T * K / discount * ndm2;
     }
 
     public double S { get; }
