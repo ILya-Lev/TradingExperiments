@@ -26,14 +26,16 @@ public class EuropeanCalculator
         Sigma = sigma;
         T = t;
 
-        D1 = Math.Abs(S - K) < 1e-6
-            ? (R / Sigma + Sigma / 2) * Math.Sqrt(T)
-            : (Math.Log(S / K) + T * (R + Sigma * Sigma / 2)) / Sigma / Math.Sqrt(T);
+        var sqrT = Math.Sqrt(T);
 
-        D2 = D1 - Sigma * Math.Sqrt(T);
+        D1 = Math.Abs(S - K) < 1e-6
+            ? (R / Sigma + Sigma / 2) * sqrT
+            : (Math.Log(S / K) + T * (R + Sigma * Sigma / 2)) / Sigma / sqrT;
+
+        D2 = D1 - Sigma * sqrT;
 
         var nd2 = N(D2);
-        var ndm2 = N(-D2);
+        var ndm2 = 1 - nd2;
         
         CallDelta = N(D1);
         PutDelta = CallDelta - 1;
@@ -50,13 +52,13 @@ public class EuropeanCalculator
 
         var nPrimeD1 = Math.Exp(-D1 * D1 / 2) / Math.Sqrt(2 * Math.PI);
 
-        var thetaFirstPart = -S * nPrimeD1 * Sigma / 2 / Math.Sqrt(T);
+        var thetaFirstPart = -S * nPrimeD1 * Sigma / 2 / sqrT;
         CallTheta = thetaFirstPart - R * discountedK * nd2;
         PutTheta = thetaFirstPart + R * discountedK * ndm2;
 
-        Gamma = nPrimeD1 / Sigma / S / Math.Sqrt(T);
+        Gamma = nPrimeD1 / Sigma / S / sqrT;
 
-        Vega = S * Math.Sqrt(T) * nPrimeD1;
+        Vega = S * sqrT * nPrimeD1;
 
         CallRho = T * discountedK * nd2;
         PutRho = -T * K / discount * ndm2;
