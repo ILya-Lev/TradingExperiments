@@ -23,7 +23,7 @@ public class BinomialTreeModel
     public double Discount { get; }
 
     /// <summary> payoff of a given node if executed right now - expects current node's Strike price only </summary>
-    public Func<double, double> Payoff { get; }
+    public Func<double, double> InstantPayoff { get; }
 
     /// <summary>
     /// calculates payoffs for each node of cox-Ross-Rubinstein model
@@ -34,10 +34,10 @@ public class BinomialTreeModel
     /// <param name="u">going up factor</param>
     /// <param name="d">going down factor</param>
     /// <param name="discount">generates discount factor after 1 step</param>
-    /// <param name="payoff">payoff of a given node if executed right now </param>
+    /// <param name="instantPayoff">payoff of a given node if executed right now </param>
     public BinomialTreeModel(bool isEuropean
         , int n, double s, double u, double d
-        , double discount, Func<double, double> payoff)
+        , double discount, Func<double, double> instantPayoff)
     {
         if (!(u > 1 / discount && 1 / discount > d))
             throw new Exception($"Invalid parameters - the relation is not followed: {u} > {1 / discount} > {d}");
@@ -45,7 +45,7 @@ public class BinomialTreeModel
         U = u;
         D = d;
         Discount = discount;
-        Payoff = payoff;
+        InstantPayoff = instantPayoff;
         Q = (1 / discount - d) / (u - d);
         
         Root = new() { Strike = s };
@@ -56,14 +56,16 @@ public class BinomialTreeModel
     }
 
     private double GetEuropeanPayoff(Node node) => Discount * (node.Up!.Payoff * Q + node.Down!.Payoff * (1 - Q));
-    private double GetAmericanPayoff(Node node) => Math.Max(Payoff(node.Strike), GetEuropeanPayoff(node));
+    private double GetAmericanPayoff(Node node) => Math.Max(InstantPayoff(node.Strike), GetEuropeanPayoff(node));
     
     private List<Node> BuildTreeAndAssignStrikePrices(int n)
     {
         var layer = new List<Node>(){Root};
         for (int step = 0; step < n; step++)
         {
+            //shows than each new layer has just +1 node; makes sense as it's path independent model
             var nextLayer = new List<Node> { CreateUpChild(layer[0]) };
+
             foreach (var node in layer)
             {
                 node.Up = nextLayer.Last();
@@ -83,13 +85,13 @@ public class BinomialTreeModel
     private void AssignPayoffs(Func<Node, double> payoff)
     {
         foreach (var leaf in Leaves)
-            leaf.Payoff = Payoff(leaf.Strike);
+            leaf.Payoff = InstantPayoff(leaf.Strike);
 
         var layer = Leaves.ToList();
         while (layer.Count > 1)
         {
             var previousLayer = new List<Node>();
-            foreach (var leaf in layer.Skip(1))
+            foreach (var leaf in layer.Skip(1))//shows that each previous (parent) layer has 1 node less than current
             {
                 var node = leaf.ParentDown!;
                 node.Payoff = payoff(node);
