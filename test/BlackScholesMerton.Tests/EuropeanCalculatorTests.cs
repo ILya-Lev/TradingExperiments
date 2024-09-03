@@ -3,6 +3,7 @@ using FluentAssertions.Execution;
 
 namespace BlackScholesMerton.Tests;
 
+[Trait("Category", "Unit")]
 public class EuropeanCalculatorTests
 {
     private const double Precision = 5e-5;

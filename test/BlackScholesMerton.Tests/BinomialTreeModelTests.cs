@@ -3,6 +3,7 @@ using FluentAssertions.Execution;
 
 namespace BlackScholesMerton.Tests;
 
+[Trait("Category", "Unit")]
 public class BinomialTreeModelTests
 {
     [Fact]
@@ -14,6 +15,9 @@ public class BinomialTreeModelTests
         using var scope = new AssertionScope();
         treeModel.Q.Should().BeApproximately(0.75, 1e-2);
         treeModel.Root.Payoff.Should().BeApproximately(2.9592, 1e-4);
+        treeModel.Leaves[0].Payoff.Should().Be(0);
+        treeModel.Leaves[1].Payoff.Should().Be(2);
+        treeModel.Leaves[2].Payoff.Should().Be(20);
     }
 
     [Fact]
@@ -25,5 +29,8 @@ public class BinomialTreeModelTests
         using var scope = new AssertionScope();
         treeModel.Q.Should().BeApproximately(0.75, 1e-2);
         treeModel.Root.Payoff.Should().BeApproximately(7725.7426, 1e-4);
+        treeModel.Leaves[0].Payoff.Should().BeApproximately(10824.3216, 1e-4);
+        treeModel.Leaves[1].Payoff.Should().Be(0);
+        treeModel.Leaves[2].Payoff.Should().Be(0);
     }
 }

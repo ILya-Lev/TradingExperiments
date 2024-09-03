@@ -2,6 +2,7 @@
 
 public class BinomialTreeModel
 {
+    private const int RoundDigits = 8;
     public Node Root { get; }
     public IReadOnlyList<Node> Leaves { get; }
 
@@ -44,19 +45,15 @@ public class BinomialTreeModel
 
         U = u;
         D = d;
-        Discount = discount;
+        Discount = Math.Round(discount, RoundDigits);
         InstantPayoff = instantPayoff;
-        Q = (1 / discount - d) / (u - d);
+        Q = Math.Round((1 / discount - d) / (u - d), RoundDigits);
         
         Root = new() { Strike = s };
         Leaves = BuildTreeAndAssignStrikePrices(n);
 
-        AssignPayoffs(GetPayoff);
-        double GetPayoff(Node node) => isEuropean ? GetEuropeanPayoff(node) : GetAmericanPayoff(node);
+        AssignPayoffs(GetPayoff(isEuropean));
     }
-
-    private double GetEuropeanPayoff(Node node) => Discount * (node.Up!.Payoff * Q + node.Down!.Payoff * (1 - Q));
-    private double GetAmericanPayoff(Node node) => Math.Max(InstantPayoff(node.Strike), GetEuropeanPayoff(node));
     
     private List<Node> BuildTreeAndAssignStrikePrices(int n)
     {
@@ -81,11 +78,15 @@ public class BinomialTreeModel
 
     private Node CreateUpChild(Node node) => new() { ParentUp = node, Strike = node.Strike * U };
     private Node CreateDownChild(Node node) => new() { ParentDown = node, Strike = node.Strike * D };
-
+    
+    private Func<Node, double> GetPayoff(bool isEuropean) => isEuropean ? GetEuropeanPayoff : GetAmericanPayoff;
+    private double GetEuropeanPayoff(Node node) => Discount * (node.Up!.Payoff * Q + node.Down!.Payoff * (1 - Q));
+    private double GetAmericanPayoff(Node node) => Math.Max(InstantPayoff(node.Strike), GetEuropeanPayoff(node));
+    
     private void AssignPayoffs(Func<Node, double> payoff)
     {
         foreach (var leaf in Leaves)
-            leaf.Payoff = InstantPayoff(leaf.Strike);
+            leaf.Payoff = Math.Round(InstantPayoff(leaf.Strike), RoundDigits);
 
         var layer = Leaves.ToList();
         while (layer.Count > 1)
@@ -94,7 +95,7 @@ public class BinomialTreeModel
             foreach (var leaf in layer.Skip(1))//shows that each previous (parent) layer has 1 node less than current
             {
                 var node = leaf.ParentDown!;
-                node.Payoff = payoff(node);
+                node.Payoff = Math.Round(payoff(node), RoundDigits);
                 previousLayer.Add(node);
             }    
             layer = previousLayer;
