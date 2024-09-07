@@ -80,8 +80,6 @@ public class EuropeanCalculatorTests
             wealth[i] = wealth[i - 1] + calculators[i - 1].CallDelta * (calculators[i].S - calculators[i - 1].S);
         }
 
-        using var scope = new AssertionScope();
-
         _output.WriteLine("replication experiment");
         _output.WriteLine("Time\tStockPrice\tCallPrice\tDelta\t\tWealth");
         for (int i = 0; i < calculators.Length; i++)
@@ -91,4 +89,43 @@ public class EuropeanCalculatorTests
         }
     }
 
+
+    [Fact]
+    public void EuropeanCallOption_1mReplicate_2mLiquidate_Observe()
+    {
+        var steps = new[]
+        {
+            new EuropeanCalculator(100, 100, 0.05, 0.25, 3.0/12),
+            new EuropeanCalculator(98, 100, 0.05, 0.25, 2.0/12),
+            new EuropeanCalculator(101, 100, 0.05, 0.25, 1.0/12),
+        };
+
+        var initiallyBorrow = steps[0].CallDelta * steps[0].S - 1.08 * steps[0].CallPrice;
+
+        var reBalanceCost = (steps[1].CallDelta - steps[0].CallDelta)*steps[1].S;
+        var borrowAfterReBalance = initiallyBorrow * Math.Exp(0.05 / 12) + reBalanceCost;
+
+        var finalBankDept = borrowAfterReBalance * Math.Exp(0.05 / 12);
+        //return bank dept + buy back the option + sell stocks (we have delta from 1 month and current prices)
+        var pnl = -finalBankDept - steps[2].CallPrice + steps[1].CallDelta * steps[2].S;
+
+        _output.WriteLine(
+            $"""
+             month 0:
+                borrow {initiallyBorrow:N4}
+                own stocks {steps[0].CallDelta:N4}
+                sold option for {1.08 * steps[0].CallPrice:N4}
+             
+             month 1:
+                owe to bank {borrowAfterReBalance:N4}
+                own stocks {steps[1].CallDelta:N4}
+             
+             month 2:
+                owe to bank {finalBankDept:N4}
+                own stocks {steps[1].CallDelta:N4} sell at {steps[1].CallDelta * steps[2].S:N4}
+                buy the option back {steps[2].CallPrice:N4}
+                
+             total pnl {pnl:N4}
+             """);
+    }
 }
