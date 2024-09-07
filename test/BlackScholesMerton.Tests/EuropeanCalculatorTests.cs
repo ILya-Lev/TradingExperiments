@@ -89,7 +89,6 @@ public class EuropeanCalculatorTests
         }
     }
 
-
     [Fact]
     public void EuropeanCallOption_1mReplicate_2mLiquidate_Observe()
     {
@@ -128,4 +127,12 @@ public class EuropeanCalculatorTests
              total pnl {pnl:N4}
              """);
     }
+
+    [Fact]
+    public void EuropeanPutOption_PortfolioInsurance_InitialReplication()
+    {
+        var option = new EuropeanCalculator(2, 1.9, 0.03, 0.2, 1);
+        _output.WriteLine($"{option.PutDelta:N4}");
+        _output.WriteLine($"{option.PutDelta*option.S*1e+6:N4}");
+    }    
 }
