@@ -85,6 +85,6 @@ public class EuropeanCalculator
     public double CallRho { get; }
     public double PutRho { get; }
 
-    private static double N(double x) => Normal.CDF(0, 1, x);
+    public static double N(double x) => Normal.CDF(0, 1, x);
 
 }

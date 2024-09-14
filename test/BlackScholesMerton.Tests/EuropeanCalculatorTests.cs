@@ -135,4 +135,68 @@ public class EuropeanCalculatorTests
         _output.WriteLine($"{option.PutDelta:N4}");
         _output.WriteLine($"{option.PutDelta*option.S*1e+6:N4}");
     }    
-}
+
+    [Fact]
+    public void BinaryOption_PriceIsKnown_BrutForceSigma()
+    {
+        var calculators = Enumerable.Range(1, 10).Select(n => n / 10.0)
+            .Select(sigma => new EuropeanCalculator(100, 100, 0.1, sigma, 1))
+            .Select(c => (sigma: c.Sigma, q: EuropeanCalculator.N(c.D2)))
+            .ToArray();
+
+        var discount = Math.Exp(-0.1);
+        foreach (var (sigma, q) in calculators)
+        {
+            _output.WriteLine($"sigma: {sigma:N4} price: {discount*q:N4} probability: {q:N4}");
+        }
+
+        _output.WriteLine("");
+        var match = calculators.FirstOrDefault(c => Math.Abs(c.q * discount - 0.51823) < 1e-3);
+        _output.WriteLine($"sigma: {match.sigma:N4} price: {discount * match.q:N4} probability: {match.q:N4}");
+        (match.q * discount).Should().BeApproximately(0.51823, 1e-3);
+    }
+
+    [Fact]
+    public void EuropeanOption_1mReplicate_2mLiquidate_TotalPnl()
+    {
+        var calculators = new[]
+        {
+            new EuropeanCalculator(100, 100, 0.05, 0.25, 1 / 2.0),
+            new EuropeanCalculator(98, 100, 0.05, 0.25, 5 / 12.0),
+            new EuropeanCalculator(101, 100, 0.05, 0.25, 1 / 3.0),
+        };
+        var riskFreeGrowthPerMonth = Math.Exp(0.05 / 12);
+
+        var optionInitial = 1.10 * calculators[0].CallPrice;
+        var buyStockInitial = calculators[0].CallDelta * calculators[0].S;
+        var bankInitial = optionInitial - buyStockInitial;
+
+        var reBalanceCost = (calculators[1].CallDelta - calculators[0].CallDelta) * calculators[1].S;
+        var bankReBalance = bankInitial * riskFreeGrowthPerMonth - reBalanceCost;
+
+        var liquidateOption = calculators[2].CallPrice;
+        var liquidateStocks = calculators[1].CallDelta * calculators[2].S;
+        var liquidateBank = bankReBalance * riskFreeGrowthPerMonth;
+
+        var pnl = -liquidateOption + liquidateStocks + liquidateBank;
+
+        _output.WriteLine(
+           $"""
+            initial:
+                    option cost {optionInitial:N4}
+                    stocks # {calculators[0].CallDelta:N4}
+                    buy stock {buyStockInitial:N4}
+                    bank {bankInitial:N4}
+            re balance:
+                    stocks # {calculators[1].CallDelta:N4}
+                    buy stock {reBalanceCost:N4}
+                    bank {bankReBalance:N4}
+            liquidate:
+                    option {liquidateOption:N4}
+                    sell stock {liquidateStocks:N4}
+                    bank {liquidateBank:N4}
+            pnl: {pnl:N4}
+            """
+                                                                        );
+                                                                }
+                                                            }
