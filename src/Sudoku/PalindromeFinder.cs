@@ -4,12 +4,16 @@ public class PalindromeFinder
 {
     public static int FindLargestPalindrome()
     {
-        return Enumerable.Range(1, 1000)
-            .SelectMany(lhs => Enumerable.Range(lhs, 1000 - lhs)
-                .Select(rhs => lhs * rhs))
-            .Reverse()
-            .Where(IsPalindrome)
-            .Max();
+        var max = 0;
+        for (int lhs = 999; lhs > 100; lhs--)
+            for (int rhs = lhs; rhs > 100; rhs--)
+            {
+                var current = lhs * rhs;
+                if (current > max && IsPalindrome(current)) 
+                    max = current;
+            }
+
+        return max;
     }
 
     public static bool IsPalindrome(int n)
@@ -21,9 +25,9 @@ public class PalindromeFinder
             n /= 10;
         }
 
-        for (int i = 0; i < digits.Count/2; i++)
+        for (int i = 0; i < digits.Count / 2; i++)
         {
-            if (digits[i] != digits[^(i+1)])
+            if (digits[i] != digits[^(i + 1)])
             {
                 return false;
             }

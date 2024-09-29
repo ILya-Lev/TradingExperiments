@@ -2,6 +2,7 @@
 
 namespace Sudoku.Tests;
 
+[Trait("Category", "Unit")]
 public class PalindromeFinderTests
 {
     [Fact]
