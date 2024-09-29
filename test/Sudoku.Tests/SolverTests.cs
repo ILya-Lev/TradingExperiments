@@ -26,7 +26,7 @@ public class SolverTests(ITestOutputHelper output)
 
         var initial = new Field(digits);
 
-        var solved = Solver.Solve(initial);
+        var solved = Solver.Solve(initial)!;
 
         output.WriteLine(solved.Print());
         solved.IsSolved.Should().BeTrue();
@@ -52,7 +52,7 @@ public class SolverTests(ITestOutputHelper output)
 
         var initial = new Field(digits);
 
-        var solved = Solver.Solve(initial);
+        var solved = Solver.Solve(initial)!;
 
         output.WriteLine(solved.Print());
         solved.IsSolved.Should().BeTrue();
@@ -78,7 +78,7 @@ public class SolverTests(ITestOutputHelper output)
 
         var initial = new Field(digits);
 
-        var solved = Solver.Solve(initial);
+        var solved = Solver.Solve(initial)!;
 
         output.WriteLine(solved.Print());
         solved.IsSolved.Should().BeTrue();
@@ -104,7 +104,7 @@ public class SolverTests(ITestOutputHelper output)
 
         var initial = new Field(digits);
 
-        var solved = Solver.Solve(initial);
+        var solved = Solver.Solve(initial)!;
 
         output.WriteLine(solved.Print());
         solved.IsSolved.Should().BeTrue();
@@ -130,7 +130,7 @@ public class SolverTests(ITestOutputHelper output)
 
         var initial = new Field(digits);
 
-        var solved = Solver.Solve(initial);
+        var solved = Solver.Solve(initial)!;
 
         output.WriteLine(solved.Print());
         solved.IsSolved.Should().BeTrue();
@@ -156,7 +156,7 @@ public class SolverTests(ITestOutputHelper output)
 
         var initial = new Field(digits);
 
-        var solved = Solver.Solve(initial);
+        var solved = Solver.Solve(initial)!;
 
         output.WriteLine(solved.Print());
         solved.IsSolved.Should().BeTrue();

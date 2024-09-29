@@ -18,73 +18,50 @@ public static class Solver
 
                 if (object.ReferenceEquals(next, current))
                     break;
+
                 current = next;
             }
 
             if (current.IsSolved)
                 return current;
 
-            var doubleFit = DoubleSplitFit(current);
-            if (doubleFit is not null) 
-                current = doubleFit;
+            current = DoubleSplitFit(current) ?? current;
         }
         return current;
     }
 
     private static Field? FitByMissingIntersection(Field current)
     {
-        var next = current;
-
         for (int r = 0; r < Field.Size; r++)
         {
-            var rowMissingDigits = current.GetRowMissingDigits(r);
             for (int c = 0; c < Field.Size; c++)
             {
                 if (current.IsCellOccupied(r, c))
                     continue;
 
-                if (!object.ReferenceEquals(next, current))
-                {
-                    current = next;
-                    rowMissingDigits = current.GetRowMissingDigits(r);
-                }
-
-                var colMissingDigits = current.GetColMissingDigits(c);
-                var sqrMissingDigits = current.GetSqrMissingDigits(r, c);
-
-                var commonMissingDigits = rowMissingDigits
-                    .Intersect(colMissingDigits)
-                    .Intersect(sqrMissingDigits)
-                    .ToArray();
+                var commonMissingDigits = FindCommonMissingDigits(current, r, c);
 
                 if (commonMissingDigits.Length == 0)
                     return null;
 
                 if (commonMissingDigits.Length == 1)
-                    next = current.CloneWith(r, c, commonMissingDigits[0])!;
+                    current = current.CloneWith(r, c, commonMissingDigits[0])!;
             }
         }
-        
-        return next;
+
+        return current;
     }
 
     private static Field? DoubleSplitFit(Field current)
     {
         for (int r = 0; r < Field.Size; r++)
         {
-            var rowMissingDigits = current.GetRowMissingDigits(r);
             for (int c = 0; c < Field.Size; c++)
             {
                 if (current.IsCellOccupied(r, c))
                     continue;
 
-                var colMissingDigits = current.GetColMissingDigits(c);
-                var sqrMissingDigits = current.GetSqrMissingDigits(r, c);
-
-                var commonMissingDigits = rowMissingDigits
-                    .Intersect(colMissingDigits)
-                    .Intersect(sqrMissingDigits)
-                    .ToArray();
+                var commonMissingDigits = FindCommonMissingDigits(current, r, c);
 
                 if (commonMissingDigits.Length == 2)
                 {
@@ -102,4 +79,10 @@ public static class Solver
         
         return null;
     }
+
+    private static int[] FindCommonMissingDigits(Field current, int r, int c) => current
+        .GetRowMissingDigits(r)
+        .Intersect(current.GetColMissingDigits(c))
+        .Intersect(current.GetSqrMissingDigits(r, c))
+        .ToArray();
 }
