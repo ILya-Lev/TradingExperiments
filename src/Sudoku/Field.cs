@@ -16,11 +16,28 @@ public class Field
         }
     }
 
-    public Field CloneWith(int row, int col, int digit)
+    public Field? CloneWith(int row, int col, int digit)
     {
+        if (Contradicts(row, col, digit))
+            return null;
+
         var clone = new Field(_digits);
         clone._digits[row][col] = digit;
         return clone;
+    }
+
+    private bool Contradicts(int row, int col, int digit)
+    {
+        if (_digits[row].Contains(digit)) 
+            return true;
+
+        for (int r = 0; r < Size; r++)
+        {
+            if (_digits[r][col] == digit)
+                return true;
+        }
+
+        return GetSqrDigits(row, col).Contains(digit);
     }
 
     public string Print() => string.Join(Environment.NewLine
@@ -50,7 +67,12 @@ public class Field
     public int[] GetSqrMissingDigits(int row, int col)
     {
 
-        var presentDigits = new List<int>();
+        var presentDigits = GetSqrDigits(row, col);
+        return Enumerable.Range(1, 9).Except(presentDigits).ToArray();
+    }
+
+    private IEnumerable<int> GetSqrDigits(int row, int col)
+    {
         for (int dr = 0; dr < 3; dr++)
         {
             var r = row / 3 * 3 + dr;
@@ -58,9 +80,8 @@ public class Field
             {
                 var c = col / 3 * 3 + dc;
                 if (_digits[r][c] != 0)
-                    presentDigits.Add(_digits[r][c]);
+                    yield return _digits[r][c];
             }
         }
-        return Enumerable.Range(1, 9).Except(presentDigits).ToArray();
     }
 }

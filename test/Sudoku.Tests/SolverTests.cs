@@ -84,7 +84,7 @@ public class SolverTests(ITestOutputHelper output)
         solved.IsSolved.Should().BeTrue();
     }
 
-    [Fact]//currently fails
+    [Fact]//double split fit - allows to solve
     public void Solve_Expert001_Solved()
     {
         var digits = new int[][]
@@ -100,6 +100,58 @@ public class SolverTests(ITestOutputHelper output)
             new []{0,0,1,0,0,0,0,0,2},
             new []{9,0,0,8,7,0,3,5,0},
             new []{0,0,0,0,0,6,8,0,0},
+        };
+
+        var initial = new Field(digits);
+
+        var solved = Solver.Solve(initial);
+
+        output.WriteLine(solved.Print());
+        solved.IsSolved.Should().BeTrue();
+    }
+
+    [Fact]//double split fit - allows to solve
+    public void Solve_Master001_Solved()
+    {
+        var digits = new int[][]
+        {
+            new []{0,2,0,5,0,8,9,0,3},
+            new []{6,8,0,1,9,0,0,0,0},
+            new []{0,0,0,3,4,0,0,0,7},
+            
+            new []{0,0,1,9,0,0,0,4,5},
+            new []{0,0,0,0,0,0,8,0,0},
+            new []{3,0,9,0,0,0,0,0,0},
+            
+            new []{0,0,2,0,0,5,0,0,0},
+            new []{0,0,0,7,0,0,1,6,0},
+            new []{7,0,0,0,1,0,5,0,8},
+        };
+
+        var initial = new Field(digits);
+
+        var solved = Solver.Solve(initial);
+
+        output.WriteLine(solved.Print());
+        solved.IsSolved.Should().BeTrue();
+    }
+
+    [Fact]//double split fit - allows to solve
+    public void Solve_Extreme001_Solved()
+    {
+        var digits = new int[][]
+        {
+            new []{4,0,0,0,0,0,7,0,0},
+            new []{0,9,0,1,0,0,0,0,0},
+            new []{0,0,3,0,0,9,6,0,8},
+            
+            new []{0,0,2,0,0,0,0,1,0},
+            new []{6,0,0,5,0,0,8,0,2},
+            new []{0,0,0,0,0,8,0,7,0},
+            
+            new []{0,0,6,0,0,1,9,0,3},
+            new []{0,0,0,0,0,0,0,2,0},
+            new []{5,0,0,0,4,0,0,0,0},
         };
 
         var initial = new Field(digits);
