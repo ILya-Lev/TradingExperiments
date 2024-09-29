@@ -19,6 +19,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sudoku", "src\Sudoku\Sudoku
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sudoku.Tests", "test\Sudoku.Tests\Sudoku.Tests.csproj", "{5B94C380-A1B1-4640-B9CC-CADD47FC0E74}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sudoku.Benchmarks", "benchmark\Sudoku.Benchmarks\Sudoku.Benchmarks.csproj", "{3D8A83F1-6704-4A96-8F31-0BACC394B5A1}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "benchmark", "benchmark", "{95EA0860-2EDE-437C-ABB1-BD2C3FDB1964}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -49,6 +53,10 @@ Global
 		{5B94C380-A1B1-4640-B9CC-CADD47FC0E74}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5B94C380-A1B1-4640-B9CC-CADD47FC0E74}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5B94C380-A1B1-4640-B9CC-CADD47FC0E74}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3D8A83F1-6704-4A96-8F31-0BACC394B5A1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3D8A83F1-6704-4A96-8F31-0BACC394B5A1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3D8A83F1-6704-4A96-8F31-0BACC394B5A1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3D8A83F1-6704-4A96-8F31-0BACC394B5A1}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -60,6 +68,7 @@ Global
 		{91A2CF10-F301-4464-A0F9-69C2B4EAAE66} = {C0C8B952-6648-422E-84E1-980CB9DF8BD2}
 		{70D42819-6D5C-4333-976A-E541A50E9765} = {17873FA2-B089-4EDA-ACEE-143B48A8D966}
 		{5B94C380-A1B1-4640-B9CC-CADD47FC0E74} = {C0C8B952-6648-422E-84E1-980CB9DF8BD2}
+		{3D8A83F1-6704-4A96-8F31-0BACC394B5A1} = {95EA0860-2EDE-437C-ABB1-BD2C3FDB1964}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {395CCA6E-F778-41F9-97AD-3FC5EBDC8C6D}

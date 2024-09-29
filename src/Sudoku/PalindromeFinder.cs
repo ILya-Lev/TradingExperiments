@@ -1,4 +1,6 @@
-﻿namespace Sudoku;
+﻿using System.Runtime.CompilerServices;
+
+namespace Sudoku;
 
 public class PalindromeFinder
 {
@@ -16,16 +18,18 @@ public class PalindromeFinder
         return max;
     }
 
-    public static bool IsPalindrome(int n)
+    [SkipLocalsInit]
+    public static bool IsPalindrome(int n)//works for 6 digits numbers only
     {
-        var digits = new List<int>();
+        Span<int> digits = stackalloc int[6];
+        var position = 0;
         while (n > 0)
         {
-            digits.Add(n % 10);
+            digits[position++] = n % 10;
             n /= 10;
         }
 
-        for (int i = 0; i < digits.Count / 2; i++)
+        for (int i = 0; i < digits.Length / 2; i++)
         {
             if (digits[i] != digits[^(i + 1)])
             {
