@@ -14,6 +14,8 @@ public class PalindromeFinderTests
     [Fact]
     public void IsPalindrome_Observe()
     {
-        PalindromeFinder.IsPalindrome(906609).Should().BeTrue();
+        PalindromeFinder.IsPalindromeList(906609).Should().BeTrue();
+        PalindromeFinder.IsPalindromeInPlace(906609).Should().BeTrue();
+        PalindromeFinder.IsPalindromeStackAlloc(906609).Should().BeTrue();
     }
 }
