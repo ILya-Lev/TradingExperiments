@@ -6,27 +6,41 @@ public static class Solver
     {
         if (initial == null) return null;
 
-        var current = initial;
-        while (!current.IsSolved)
+        var states = new Stack<Field>();
+        states.Push(initial);
+
+        while (states.Any())
         {
-            //for (int attempt = 0; attempt < 10; attempt++)
-            while (true)
-            {
-                var next = FitByMissingIntersection(current);
-                if (next == null) 
-                    return null;
+            var current = states.Pop();
 
-                if (object.ReferenceEquals(next, current))
-                    break;
-
-                current = next;
-            }
-
+            var next = PopulateByOneIntersection(current);
+            if (next is null)
+                continue;
+            
+            current = next;
             if (current.IsSolved)
                 return current;
 
-            current = DoubleSplitFit(current) ?? current;
+            foreach (var childState in DoubleSplitFit(current).Where(s => s is not null))
+                states.Push(childState!);
         }
+        
+        return null;
+    }
+
+    private static Field? PopulateByOneIntersection(Field current)
+    {
+        var next = current;
+        do
+        {
+            current = next;
+            next = FitByMissingIntersection(current);
+            if (next == null)
+                return null;
+
+
+        } while (!object.ReferenceEquals(next, current));
+
         return current;
     }
 
@@ -52,7 +66,7 @@ public static class Solver
         return current;
     }
 
-    private static Field? DoubleSplitFit(Field current)
+    private static Field?[] DoubleSplitFit(Field current)
     {
         for (int r = 0; r < Field.Size; r++)
         {
@@ -65,19 +79,16 @@ public static class Solver
 
                 if (commonMissingDigits.Length == 2)
                 {
-                    var left = current.CloneWith(r, c, commonMissingDigits[0]);
-                    left = Solve(left);
-                    if (left?.IsSolved == true)
-                        return left;
-
-                    var right = current.CloneWith(r, c, commonMissingDigits[1]);
-                    right = Solve(right);
-                    return right;
+                    return new[]
+                    {
+                        current.CloneWith(r, c, commonMissingDigits[0]),
+                        current.CloneWith(r, c, commonMissingDigits[1])
+                    };
                 }
             }
         }
         
-        return null;
+        return Array.Empty<Field?>();
     }
 
     private static int[] FindCommonMissingDigits(Field current, int r, int c) => current
