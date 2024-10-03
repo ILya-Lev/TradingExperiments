@@ -187,4 +187,30 @@ public class SolverTests(ITestOutputHelper output)
         output.WriteLine(solved.Print());
         solved.IsSolved.Should().BeTrue();
     }
+
+    [Fact]//double split fit - allows to solve
+    public void Solve_Extreme003_Solved()
+    {
+        var digits = new int[][]
+        {
+            new []{0,0,8,0,4,0,0,0,0},
+            new []{0,0,2,0,0,1,4,0,3},
+            new []{0,0,0,0,0,0,8,0,0},
+            
+            new []{0,0,0,9,0,0,5,6,0},
+            new []{5,0,0,0,8,7,0,0,0},
+            new []{0,0,0,2,0,0,0,9,0},
+            
+            new []{0,3,1,0,0,0,0,0,0},
+            new []{0,9,0,0,0,2,7,0,0},
+            new []{0,0,7,5,0,0,0,0,9},
+        };
+
+        var initial = new Field(digits);
+
+        var solved = Solver.Solve(initial)!;
+
+        output.WriteLine(solved.Print());
+        solved.IsSolved.Should().BeTrue();
+    }
 }
