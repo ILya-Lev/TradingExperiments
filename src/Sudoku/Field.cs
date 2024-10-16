@@ -18,7 +18,10 @@ public class Field
 
     public Field? CloneWith(int row, int col, int digit)
     {
-        if (Contradicts(row, col, digit))
+        if (digit == 0 && IsCellOccupied(row, col))
+            return null;
+
+        if (digit != 0 && Contradicts(row, col, digit))
             return null;
 
         var clone = new Field(_digits);
@@ -28,6 +31,9 @@ public class Field
 
     private bool Contradicts(int row, int col, int digit)
     {
+        if (_digits[row][col] == digit)
+            return false;
+
         if (_digits[row].Contains(digit)) 
             return true;
 

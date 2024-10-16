@@ -213,4 +213,36 @@ public class SolverTests(ITestOutputHelper output)
         output.WriteLine(solved.Print());
         solved.IsSolved.Should().BeTrue();
     }
+
+    [Fact]//double split fit - allows to solve
+    public void Solve_Extreme004_Solved()
+    {
+        var digits = new int[][]
+        {
+            new []{5,3,1,0,0,0,0,0,0},
+            new []{0,0,0,0,0,0,8,0,0},
+            new []{0,2,7,1,3,0,0,0,0},
+            
+            new []{0,9,0,3,2,8,0,5,0},
+            new []{0,1,0,4,0,0,0,0,6},
+            new []{0,0,0,0,0,0,0,0,4},
+            
+            new []{0,6,0,0,0,0,0,0,0},
+            new []{0,0,5,0,0,4,0,6,0},
+            new []{3,0,0,0,0,0,9,0,0},
+        };
+
+        var initial = new Field(digits);
+
+        var solved = Solver.Solve(initial)!;
+
+        output.WriteLine(solved.Print());
+        solved.IsSolved.Should().BeTrue();
+
+        var steps = MaxPointsFiller.GetFillingSequence(initial, solved).ToArray();
+        foreach (var (r,c,d) in steps)
+        {
+            output.WriteLine($"{r} {c} {d}");
+        }
+    }
 }
