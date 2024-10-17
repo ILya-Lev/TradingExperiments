@@ -10,7 +10,18 @@ public static class MaxPointsFiller
             var bestCell = Enumerable.Range(0, Field.Size)
                 .SelectMany(r => Enumerable.Range(0, Field.Size).Select(c => (r, c)))
                 .Where(cell => !current.IsCellOccupied(cell.r, cell.c))
-                .MaxBy(cell => GetRowScore(current, cell) + GetColScore(current, cell) + GetSquScore(current, cell));
+                .MaxBy(cell =>
+                {
+                    var scores = new[]
+                    {
+                        GetRowScore(current, cell),GetColScore(current, cell),GetSquScore(current, cell)
+                    };
+                    if (scores.Any(s => s == Field.Size - 2))
+                        return scores.Sum() + 50;
+                    if (scores.Any(s => s == Field.Size - 1))
+                        return scores.Sum() + 100;
+                    return scores.Sum();
+                });
 
             var digit = solved.GetCell(bestCell.r, bestCell.c);
             yield return (bestCell.r, bestCell.c, digit);
@@ -18,31 +29,15 @@ public static class MaxPointsFiller
         }
     }
 
-    private static int GetRowScore(Field current, (int r, int c) cell)
-    {
-        var total = Enumerable
-            .Range(0, Field.Size)
-            .Where(col => current.IsCellOccupied(cell.r, col))
-            .Sum(_ => 1);
-        
-        if (total == Field.Size - 1)
-            total += 100;//always finish given structure (row/col/squ)
-        
-        return total;
-    }
+    private static int GetRowScore(Field current, (int r, int c) cell) => Enumerable
+        .Range(0, Field.Size)
+        .Where(col => current.IsCellOccupied(cell.r, col))
+        .Sum(_ => 1);
 
-    private static int GetColScore(Field current, (int r, int c) cell)
-    {
-        var total = Enumerable
-            .Range(0, Field.Size)
-            .Where(row => current.IsCellOccupied(row, cell.c))
-            .Sum(_ => 1);
-
-        if (total == Field.Size - 1)
-            total += 100;//always finish given structure (row/col/squ)
-        
-        return total;
-    }
+    private static int GetColScore(Field current, (int r, int c) cell) => Enumerable
+        .Range(0, Field.Size)
+        .Where(row => current.IsCellOccupied(row, cell.c))
+        .Sum(_ => 1);
 
     private static int GetSquScore(Field current, (int r, int c) cell)
     {
@@ -59,10 +54,6 @@ public static class MaxPointsFiller
                 }
             }
         }
-
-        if (counter == Field.Size - 1)
-            counter += 100;//always finish given structure (row/col/squ)
-
         return counter;
     }
 }
