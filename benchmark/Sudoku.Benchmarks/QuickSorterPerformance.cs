@@ -34,18 +34,15 @@ public class QuickSorterPerformance
    
    | Method                    | Mean     | Error    | StdDev   | Gen0       | Gen1      | Allocated    |
    |-------------------------- |---------:|---------:|---------:|-----------:|----------:|-------------:|
-   | SortRecursiveSingleThread | 476.9 ms | 15.88 ms | 46.83 ms |  9000.0000 |         - | 117280.55 KB |
-   | SortRecursiveMultiThread  | 143.1 ms |  2.84 ms |  8.20 ms | 13000.0000 | 1000.0000 | 165234.57 KB |
-   | SortStackSingleThread     | 419.6 ms | 20.49 ms | 60.43 ms |          - |         - |      1.51 KB |
-   | SortStackMultiThread      | 923.8 ms |  9.46 ms |  8.38 ms | 32000.0000 |         - | 392136.45 KB |
-   
-   // * Warnings *
-   MultimodalDistribution
-     QuickSorterPerformance.SortStackSingleThread: .NET 8.0 -> It seems that the distribution is bimodal (mValue = 3.53)
+   | SortRecursiveSingleThread | 538.3 ms | 14.82 ms | 42.99 ms |  9000.0000 |         - | 117246.33 KB |
+   | SortRecursiveMultiThread  | 144.7 ms |  3.40 ms |  9.88 ms | 13000.0000 | 1000.0000 | 170211.27 KB |
+   | SortStackSingleThread     | 460.2 ms | 17.13 ms | 50.23 ms |          - |         - |      1.51 KB |
+   | SortStackMultiThread      | 824.1 ms | 15.96 ms | 17.08 ms | 27000.0000 |         - | 328932.88 KB |
    
    // * Hints *
    Outliers
-     QuickSorterPerformance.SortRecursiveMultiThread: .NET 8.0 -> 3 outliers were removed (167.44 ms..172.59 ms)
-     QuickSorterPerformance.SortStackMultiThread: .NET 8.0     -> 1 outlier  was  removed (949.37 ms)
+     QuickSorterPerformance.SortRecursiveSingleThread: .NET 8.0 -> 3 outliers were removed (652.25 ms..714.20 ms)
+     QuickSorterPerformance.SortRecursiveMultiThread: .NET 8.0  -> 3 outliers were removed (181.25 ms..195.27 ms)
+     QuickSorterPerformance.SortStackSingleThread: .NET 8.0     -> 1 outlier  was  removed (597.25 ms)
    
  */

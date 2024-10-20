@@ -20,7 +20,7 @@ public static class QuickSorter
         else if (!enableParallel)
             DoQuickSortStack(source, 0, source.Count);
         else
-            DoQuickSortStackParallel(source, 0, source.Count).GetAwaiter().GetResult();
+            DoQuickSortStackParallel(source, 0, source.Count);
     }
 
     private static bool IsSorted<T>(IList<T> source, int start, int end) where T : IComparable<T>
@@ -115,32 +115,18 @@ public static class QuickSorter
     }
 
     //too slow
-    private static async Task DoQuickSortStackParallel<T>(IList<T> source, int start, int end)
+    private static void DoQuickSortStackParallel<T>(IList<T> source, int start, int end)
         where T : IComparable<T>
     {
         var slices = new ConcurrentStack<(int s, int e)>();
         slices.Push((start, end));
 
-        var tasks = new List<Task>() { Task.Run(ProcessSlice) };
-
-        while (tasks.Any())
+        while (!slices.IsEmpty)
         {
-            var current = await Task.WhenAny(tasks);
-            tasks.Remove(current);
-
-            if (tasks.Count * 2.5 < Environment.ProcessorCount - 1)
-            {
-                //as each ProcessSlice call may add by 2 slices into the stack, trigger by 2 tasks at once
-                if (!slices.IsEmpty)
-                    tasks.Add(Task.Run(ProcessSlice));
-                if (!slices.IsEmpty)
-                    tasks.Add(Task.Run(ProcessSlice));
-            }
-            else
-            {
-                if (!slices.IsEmpty)
-                    ProcessSlice();
-            }
+            Parallel.Invoke(Enumerable
+                .Range(1, Math.Min(Environment.ProcessorCount - 1, slices.Count))
+                .Select<int, Action>(_ => ProcessSlice).ToArray()
+            );
         }
 
 
