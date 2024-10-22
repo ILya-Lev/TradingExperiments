@@ -1,19 +1,23 @@
 ﻿using System.Buffers;
+using System.Text.RegularExpressions;
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Jobs;
 
 [MemoryDiagnoser]
 [SimpleJob(RuntimeMoniker.Net80)]
-public class SearchStringPerformance
+public partial class SearchStringPerformance
 {
+    private const string ValidChars = "abcdefghjkmnpqrstuvwxABCDEFGHJKMNPQRSTUVWX23456789";
+
     [Params("1abcd", "abcd1", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0")]
     public string Input { get; set; }
 
-    private static readonly char[] _validChars
-        = "abcdefghjkmnpqrstuvwxABCDEFGHJKMNPQRSTUVWX23456789".ToCharArray();
-    private static readonly SearchValues<char> _searchValues
-        = SearchValues.Create(_validChars.AsSpan());
+    private static readonly char[] _validChars = ValidChars.ToCharArray();
+    private static readonly SearchValues<char> _searchValues = SearchValues.Create(_validChars.AsSpan());
     private static readonly HashSet<char> _hashSet = [.._validChars];
+
+    [GeneratedRegex($"^[{ValidChars}]+$", RegexOptions.Compiled | RegexOptions.CultureInvariant, 1)]
+    public static partial Regex RegexSearch();
 
     [Benchmark]
     public bool FindAll() => Input.All(c => _validChars.Contains(c));
@@ -23,6 +27,9 @@ public class SearchStringPerformance
 
     [Benchmark]
     public bool FindHashSet() => Input.All(c => _hashSet.Contains(c));
+    
+    [Benchmark]
+    public bool FindRegex() => RegexSearch().IsMatch(Input.AsSpan());
 }
 
 /*
@@ -77,26 +84,32 @@ public class SearchStringPerformance
    
    | Method          | Input                | Mean       | Error     | StdDev     | Median     | Gen0   | Allocated |
    |---------------- |--------------------- |-----------:|----------:|-----------:|-----------:|-------:|----------:|
-   | FindAll         | 1abcd                |  17.782 ns | 0.3804 ns |  0.5693 ns |  17.535 ns | 0.0068 |      32 B |
-   | FindSearchValue | 1abcd                |   3.332 ns | 0.0983 ns |  0.1410 ns |   3.273 ns |      - |         - |
-   | FindHashSet     | 1abcd                |  13.432 ns | 0.2932 ns |  0.3707 ns |  13.428 ns | 0.0068 |      32 B |
-   | FindAll         | aaaaa(...)aaaa0 [49] | 416.405 ns | 8.3258 ns | 20.5793 ns | 414.581 ns | 0.0067 |      32 B |
-   | FindSearchValue | aaaaa(...)aaaa0 [49] |   6.098 ns | 0.1544 ns |  0.3085 ns |   6.029 ns |      - |         - |
-   | FindHashSet     | aaaaa(...)aaaa0 [49] | 313.272 ns | 6.0918 ns |  6.5182 ns | 311.137 ns | 0.0067 |      32 B |
-   | FindAll         | abcd1                |  48.888 ns | 0.9918 ns |  1.5145 ns |  48.549 ns | 0.0068 |      32 B |
-   | FindSearchValue | abcd1                |   7.300 ns | 0.1729 ns |  0.4703 ns |   7.163 ns |      - |         - |
-   | FindHashSet     | abcd1                |  40.734 ns | 0.8388 ns |  1.8413 ns |  40.470 ns | 0.0068 |      32 B |
+   | FindAll         | 1abcd                |  17.715 ns | 0.3847 ns |  0.7771 ns |  17.347 ns | 0.0068 |      32 B |
+   | FindSearchValue | 1abcd                |   3.283 ns | 0.0687 ns |  0.0643 ns |   3.272 ns |      - |         - |
+   | FindHashSet     | 1abcd                |  14.604 ns | 0.3877 ns |  1.1061 ns |  14.450 ns | 0.0068 |      32 B |
+   | FindRegex       | 1abcd                |  30.411 ns | 0.5980 ns |  1.5112 ns |  30.178 ns |      - |         - |
+   | FindAll         | aaaaa(...)aaaa0 [49] | 425.048 ns | 8.2942 ns | 23.6638 ns | 419.627 ns | 0.0067 |      32 B |
+   | FindSearchValue | aaaaa(...)aaaa0 [49] |   5.601 ns | 0.1343 ns |  0.1256 ns |   5.581 ns |      - |         - |
+   | FindHashSet     | aaaaa(...)aaaa0 [49] | 324.126 ns | 6.4884 ns | 13.2541 ns | 321.273 ns | 0.0067 |      32 B |
+   | FindRegex       | aaaaa(...)aaaa0 [49] |  34.307 ns | 0.6447 ns |  0.6030 ns |  34.246 ns |      - |         - |
+   | FindAll         | abcd1                |  47.850 ns | 0.9433 ns |  0.9264 ns |  47.700 ns | 0.0068 |      32 B |
+   | FindSearchValue | abcd1                |   6.835 ns | 0.0635 ns |  0.0530 ns |   6.844 ns |      - |         - |
+   | FindHashSet     | abcd1                |  38.298 ns | 0.7842 ns |  0.8053 ns |  38.188 ns | 0.0068 |      32 B |
+   | FindRegex       | abcd1                |  33.237 ns | 0.6971 ns |  0.6521 ns |  33.115 ns |      - |         - |
    
    // * Warnings *
    MultimodalDistribution
-     SearchStringPerformance.FindAll: .NET 8.0 -> distribution is bimodal (mValue = 3.48)
+     SearchStringPerformance.FindRegex: .NET 8.0 -> It seems that the distribution is bimodal (mValue = 3.28)
    
    // * Hints *
    Outliers
-     SearchStringPerformance.FindAll: .NET 8.0         -> 1 outlier  was  removed (21.14 ns)
-     SearchStringPerformance.FindSearchValue: .NET 8.0 -> 3 outliers were removed (5.39 ns..5.51 ns)
-     SearchStringPerformance.FindHashSet: .NET 8.0     -> 1 outlier  was  removed (16.39 ns)
-     SearchStringPerformance.FindAll: .NET 8.0         -> 3 outliers were removed (490.53 ns..562.08 ns)
-     SearchStringPerformance.FindSearchValue: .NET 8.0 -> 7 outliers were removed (10.33 ns..12.51 ns)
-     SearchStringPerformance.FindHashSet: .NET 8.0     -> 3 outliers were removed (49.76 ns..55.28 ns)
+     SearchStringPerformance.FindAll: .NET 8.0         -> 4 outliers were removed (22.80 ns..26.55 ns)
+     SearchStringPerformance.FindHashSet: .NET 8.0     -> 6 outliers were removed (19.63 ns..22.79 ns)
+     SearchStringPerformance.FindRegex: .NET 8.0       -> 8 outliers were removed (37.55 ns..42.79 ns)
+     SearchStringPerformance.FindAll: .NET 8.0         -> 5 outliers were removed (497.57 ns..569.51 ns)
+     SearchStringPerformance.FindHashSet: .NET 8.0     -> 1 outlier  was  removed (377.72 ns)
+     SearchStringPerformance.FindSearchValue: .NET 8.0 -> 2 outliers were removed, 5 outliers were detected (8.40 ns..8.41 ns, 8.74 ns, 8.96 ns)
+     SearchStringPerformance.FindHashSet: .NET 8.0     -> 1 outlier  was  removed (44.70 ns)
+     SearchStringPerformance.FindRegex: .NET 8.0       -> 2 outliers were removed (39.27 ns, 39.33 ns)
+   
  */
