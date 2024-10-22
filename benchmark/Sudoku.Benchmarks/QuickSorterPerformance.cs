@@ -7,7 +7,7 @@ namespace Sudoku.Benchmarks;
 [SimpleJob(RuntimeMoniker.Net80)]
 public class QuickSorterPerformance
 {
-    public int[] Source {get; set; }
+    public int[] Source { get; set; }
 
     [IterationSetup]
     public void GenerateSource()
@@ -45,4 +45,30 @@ public class QuickSorterPerformance
      QuickSorterPerformance.SortRecursiveMultiThread: .NET 8.0  -> 3 outliers were removed (181.25 ms..195.27 ms)
      QuickSorterPerformance.SortStackSingleThread: .NET 8.0     -> 1 outlier  was  removed (597.25 ms)
    
+// * Summary *
+   
+   BenchmarkDotNet v0.14.0, Windows 11 (10.0.22631.4317/23H2/2023Update/SunValley3)
+   Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical cores
+   .NET SDK 9.0.100-preview.4.24267.66
+     [Host]   : .NET 8.0.10 (8.0.1024.46610), X64 RyuJIT AVX2
+     .NET 8.0 : .NET 8.0.10 (8.0.1024.46610), X64 RyuJIT AVX2
+   
+   Job=.NET 8.0  Runtime=.NET 8.0  InvocationCount=1
+   UnrollFactor=1
+   
+   | Method                    | Mean     | Error    | StdDev   | Gen0       | Gen1      | Allocated    |
+   |-------------------------- |---------:|---------:|---------:|-----------:|----------:|-------------:|
+   | SortRecursiveSingleThread | 660.5 ms | 12.82 ms | 14.76 ms | 25000.0000 |         - | 117234.34 KB |
+   | SortRecursiveMultiThread  | 208.4 ms |  6.95 ms | 20.49 ms | 25000.0000 | 1000.0000 | 117959.97 KB |
+   | SortStackSingleThread     | 536.8 ms | 10.35 ms | 14.85 ms |          - |         - |      1.51 KB |
+   | SortStackMultiThread      | 911.6 ms | 20.37 ms | 59.09 ms | 89000.0000 |         - | 405548.34 KB |
+   
+   // * Warnings *
+   MultimodalDistribution
+     QuickSorterPerformance.SortRecursiveMultiThread: .NET 8.0 -> It seems that the distribution is bimodal (mValue = 3.56)
+   
+   // * Hints *
+   Outliers
+     QuickSorterPerformance.SortStackSingleThread: .NET 8.0 -> 1 outlier  was  removed (583.80 ms)
+     QuickSorterPerformance.SortStackMultiThread: .NET 8.0  -> 3 outliers were removed (1.13 s..1.17 s)
  */
