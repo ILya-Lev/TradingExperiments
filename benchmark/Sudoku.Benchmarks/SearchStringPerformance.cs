@@ -36,10 +36,13 @@ public partial class SearchStringPerformance
  
 ---------------------------------------------------
    
-   // * Summary *
+   nuvolaris.io - Dino (open risk)
    
    System.Runtime.Intrinsics.Vector128.IsHardwareAccelerated -> true
 
+   
+   // * Summary *
+   
    BenchmarkDotNet v0.14.0, Windows 10 (10.0.19045.5011/22H2/2022Update)
    12th Gen Intel Core i7-12800H, 1 CPU, 20 logical and 14 physical cores
    .NET SDK 9.0.100-preview.4.24267.66
@@ -48,30 +51,39 @@ public partial class SearchStringPerformance
    
    Job=.NET 8.0  Runtime=.NET 8.0
    
-   | Method          | Input                | Mean       | Error      | StdDev     | Median     | Gen0   | Allocated |
-   |---------------- |--------------------- |-----------:|-----------:|-----------:|-----------:|-------:|----------:|
-   | FindAll         | 1abcd                |  13.599 ns |  0.6216 ns |  1.8231 ns |  14.065 ns | 0.0025 |      32 B |
-   | FindSearchValue | 1abcd                |   3.059 ns |  0.1060 ns |  0.3126 ns |   3.015 ns |      - |         - |
-   | FindHashSet     | 1abcd                |   9.256 ns |  0.6841 ns |  2.0170 ns |   9.502 ns | 0.0025 |      32 B |
-   | FindAll         | aaaaa(...)aaaa0 [49] | 362.867 ns | 18.2492 ns | 53.8082 ns | 377.884 ns | 0.0024 |      32 B |
-   | FindSearchValue | aaaaa(...)aaaa0 [49] |   4.411 ns |  0.4339 ns |  1.2793 ns |   4.602 ns |      - |         - |
-   | FindHashSet     | aaaaa(...)aaaa0 [49] | 236.096 ns | 12.7209 ns | 37.5080 ns | 244.378 ns | 0.0024 |      32 B |
-   | FindAll         | abcd1                |  42.266 ns |  2.0744 ns |  6.1164 ns |  43.923 ns | 0.0025 |      32 B |
-   | FindSearchValue | abcd1                |   5.679 ns |  0.1604 ns |  0.4728 ns |   5.698 ns |      - |         - |
-   | FindHashSet     | abcd1                |  28.012 ns |  1.4860 ns |  4.3816 ns |  29.056 ns | 0.0025 |      32 B |
+   | Method          | Input                | Mean       | Error      | StdDev     | Gen0   | Allocated |
+   |---------------- |--------------------- |-----------:|-----------:|-----------:|-------:|----------:|
+   | FindAll         | 1abcd                |  16.612 ns |  0.4905 ns |  1.4231 ns | 0.0025 |      32 B |
+   | FindSearchValue | 1abcd                |   2.649 ns |  0.2025 ns |  0.5809 ns |      - |         - |
+   | FindHashSet     | 1abcd                |  11.147 ns |  0.4659 ns |  1.3738 ns | 0.0025 |      32 B |
+   | FindRegex       | 1abcd                |  23.350 ns |  0.6691 ns |  1.9411 ns |      - |         - |
+   | FindAll         | aaaaa(...)aaaa0 [49] | 396.498 ns | 23.1844 ns | 68.3598 ns | 0.0024 |      32 B |
+   | FindSearchValue | aaaaa(...)aaaa0 [49] |   5.385 ns |  0.3651 ns |  1.0475 ns |      - |         - |
+   | FindHashSet     | aaaaa(...)aaaa0 [49] | 260.523 ns |  8.2829 ns | 24.2924 ns | 0.0024 |      32 B |
+   | FindRegex       | aaaaa(...)aaaa0 [49] |  26.135 ns |  1.1266 ns |  3.3218 ns |      - |         - |
+   | FindAll         | abcd1                |  42.037 ns |  2.3716 ns |  6.9926 ns | 0.0025 |      32 B |
+   | FindSearchValue | abcd1                |   5.957 ns |  0.1504 ns |  0.3269 ns |      - |         - |
+   | FindHashSet     | abcd1                |  29.993 ns |  1.3050 ns |  3.8478 ns | 0.0025 |      32 B |
+   | FindRegex       | abcd1                |  25.030 ns |  0.7441 ns |  2.1940 ns |      - |         - |
    
    // * Warnings *
    MultimodalDistribution
-     SearchStringPerformance.FindSearchValue: .NET 8.0 ->distribution is bimodal (mValue = 4)
-     SearchStringPerformance.FindHashSet: .NET 8.0     ->distribution is multimodal (mValue = 4.63)
-     SearchStringPerformance.FindSearchValue: .NET 8.0 ->distribution can have several modes (mValue = 2.89)
-     SearchStringPerformance.FindSearchValue: .NET 8.0 ->distribution is bimodal (mValue = 4.14)
+     SearchStringPerformance.FindSearchValue: .NET 8.0 ->  can have several modes (mValue = 3.09)
+     SearchStringPerformance.FindHashSet: .NET 8.0     ->  can have several modes (mValue = 3.14)
+     SearchStringPerformance.FindRegex: .NET 8.0       ->  is bimodal (mValue = 4.07)
+     SearchStringPerformance.FindAll: .NET 8.0         ->  can have several modes (mValue = 3)
+     SearchStringPerformance.FindHashSet: .NET 8.0     ->  is bimodal (mValue = 3.3)
    
    // * Hints *
    Outliers
-     SearchStringPerformance.FindAll: .NET 8.0 -> 1 outlier  was  removed, 5 detected (9.74 ns..10.84 ns, 20.37 ns)
-     SearchStringPerformance.FindAll: .NET 8.0 -> 5 outliers were detected (27.12 ns..28.09 ns)
-   
+     SearchStringPerformance.FindAll: .NET 8.0         -> 3 outliers were removed, 4 outliers were detected (14.28 ns, 22.35 ns..25.93 ns)
+     SearchStringPerformance.FindSearchValue: .NET 8.0 -> 5 outliers were removed (7.10 ns..10.32 ns)
+     SearchStringPerformance.FindHashSet: .NET 8.0     -> 1 outlier  was  detected (8.26 ns)
+     SearchStringPerformance.FindRegex: .NET 8.0       -> 3 outliers were removed (30.30 ns..30.89 ns)
+     SearchStringPerformance.FindSearchValue: .NET 8.0 -> 5 outliers were removed, 8 outliers were detected (4.41 ns..4.66 ns, 10.21 ns..11.56 ns)
+     SearchStringPerformance.FindHashSet: .NET 8.0     -> 1 outlier  was  removed, 4 outliers were detected (190.90 ns..197.82 ns, 338.30 ns)
+     SearchStringPerformance.FindRegex: .NET 8.0       -> 5 outliers were detected (18.22 ns..19.47 ns)
+     SearchStringPerformance.FindRegex: .NET 8.0       -> 5 outliers were detected (19.20 ns..22.26 ns)
 // * Summary *
    
    BenchmarkDotNet v0.14.0, Windows 11 (10.0.22631.4317/23H2/2023Update/SunValley3)
@@ -99,7 +111,7 @@ public partial class SearchStringPerformance
    
    // * Warnings *
    MultimodalDistribution
-     SearchStringPerformance.FindRegex: .NET 8.0 -> It seems that the distribution is bimodal (mValue = 3.28)
+     SearchStringPerformance.FindRegex: .NET 8.0 ->  is bimodal (mValue = 3.28)
    
    // * Hints *
    Outliers
