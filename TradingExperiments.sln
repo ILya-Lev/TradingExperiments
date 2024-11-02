@@ -11,17 +11,21 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BlackScholesMerton", "src\B
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BlackScholesMerton.Tests", "test\BlackScholesMerton.Tests\BlackScholesMerton.Tests.csproj", "{431F71E5-8A57-4DF5-B545-3196D396CAC3}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EventSourcing.Poc", "src\EventSourcing.Poc\EventSourcing.Poc.csproj", "{A224E724-5BDA-4348-AC6F-7C90A47C724D}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EventSourcing.Poc", "src\EventSourcing.Poc\EventSourcing.Poc.csproj", "{A224E724-5BDA-4348-AC6F-7C90A47C724D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EventSourcing.Poc.Tests", "test\EventSourcing.Poc.Tests\EventSourcing.Poc.Tests.csproj", "{91A2CF10-F301-4464-A0F9-69C2B4EAAE66}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EventSourcing.Poc.Tests", "test\EventSourcing.Poc.Tests\EventSourcing.Poc.Tests.csproj", "{91A2CF10-F301-4464-A0F9-69C2B4EAAE66}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sudoku", "src\Sudoku\Sudoku.csproj", "{70D42819-6D5C-4333-976A-E541A50E9765}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sudoku", "src\Sudoku\Sudoku.csproj", "{70D42819-6D5C-4333-976A-E541A50E9765}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sudoku.Tests", "test\Sudoku.Tests\Sudoku.Tests.csproj", "{5B94C380-A1B1-4640-B9CC-CADD47FC0E74}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sudoku.Tests", "test\Sudoku.Tests\Sudoku.Tests.csproj", "{5B94C380-A1B1-4640-B9CC-CADD47FC0E74}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sudoku.Benchmarks", "benchmark\Sudoku.Benchmarks\Sudoku.Benchmarks.csproj", "{3D8A83F1-6704-4A96-8F31-0BACC394B5A1}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sudoku.Benchmarks", "benchmark\Sudoku.Benchmarks\Sudoku.Benchmarks.csproj", "{3D8A83F1-6704-4A96-8F31-0BACC394B5A1}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "benchmark", "benchmark", "{95EA0860-2EDE-437C-ABB1-BD2C3FDB1964}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ResultLib", "src\ResultLib\ResultLib.csproj", "{4014E8EA-7F40-4D30-A402-A768A5EAAB2D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ResultLib.Tests", "test\ResultLib.Tests\ResultLib.Tests.csproj", "{FDC7BDD8-E5A8-48B3-BD33-1D75380394CA}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -57,6 +61,14 @@ Global
 		{3D8A83F1-6704-4A96-8F31-0BACC394B5A1}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3D8A83F1-6704-4A96-8F31-0BACC394B5A1}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{3D8A83F1-6704-4A96-8F31-0BACC394B5A1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4014E8EA-7F40-4D30-A402-A768A5EAAB2D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4014E8EA-7F40-4D30-A402-A768A5EAAB2D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4014E8EA-7F40-4D30-A402-A768A5EAAB2D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4014E8EA-7F40-4D30-A402-A768A5EAAB2D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FDC7BDD8-E5A8-48B3-BD33-1D75380394CA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FDC7BDD8-E5A8-48B3-BD33-1D75380394CA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FDC7BDD8-E5A8-48B3-BD33-1D75380394CA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FDC7BDD8-E5A8-48B3-BD33-1D75380394CA}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -69,6 +81,8 @@ Global
 		{70D42819-6D5C-4333-976A-E541A50E9765} = {17873FA2-B089-4EDA-ACEE-143B48A8D966}
 		{5B94C380-A1B1-4640-B9CC-CADD47FC0E74} = {C0C8B952-6648-422E-84E1-980CB9DF8BD2}
 		{3D8A83F1-6704-4A96-8F31-0BACC394B5A1} = {95EA0860-2EDE-437C-ABB1-BD2C3FDB1964}
+		{4014E8EA-7F40-4D30-A402-A768A5EAAB2D} = {17873FA2-B089-4EDA-ACEE-143B48A8D966}
+		{FDC7BDD8-E5A8-48B3-BD33-1D75380394CA} = {C0C8B952-6648-422E-84E1-980CB9DF8BD2}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {395CCA6E-F778-41F9-97AD-3FC5EBDC8C6D}
