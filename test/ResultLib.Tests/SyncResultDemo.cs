@@ -9,7 +9,7 @@ public class SyncResultDemo(ITestOutputHelper output)
     {
         for (int i = 0; i < 15; i++)
         {
-            var c = Demo();
+            var c = Demo1();
             output.WriteLine(c.Error ?? $"{c.Value}");
         }
     }
@@ -25,6 +25,19 @@ public class SyncResultDemo(ITestOutputHelper output)
         return a(dt).Apply(b(dt).CurryApply(c.Curry(dt)));
     }
 
+    private Result<C> Demo1() =>
+        from dt in Result<DateTime>.Success(DateTime.Now)
+        from a in GetA(dt)
+        let b = GetB1(dt)
+        from c in GetC(dt, a, b)
+        select c;
+
+    private Result<C> Demo2() => Result<DateTime>
+        .Success(DateTime.Now)
+        .SelectMany(GetA, (dt, a) => (dt, a))
+        .SelectMany(dtWa => GetB(dtWa.dt), (dtWa, b) => (dtWa.dt, dtWa.a, b))
+        .SelectMany(e => GetC(e.dt, e.a, e.b), (_, c) => c);
+
     private Result<A> GetA(DateTime dt)
         => dt.Microsecond % 2 == 0
         ? new A(dt.Microsecond)
@@ -34,6 +47,8 @@ public class SyncResultDemo(ITestOutputHelper output)
         => dt.Microsecond % 3 == 0
         ? new B(dt.Microsecond)
         : Result<B>.Fail($"no B for {dt.Microsecond}");
+
+    private B GetB1(DateTime dt) => new B(dt.Microsecond);
 
     private Result<C> GetC(DateTime dt, A a, B b)
         => dt.Microsecond % 5 == 0
