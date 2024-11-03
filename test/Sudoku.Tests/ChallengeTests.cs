@@ -19,13 +19,13 @@ public class ChallengeTests(ITestOutputHelper output)
             })
             .ToArray();
         var initial = new Challenge.State(0, 0, 0, 0, 0);
-        
+
         var evolution = Challenge.Evolve(initial, steps).ToArray();
 
         var loopLength = evolution.Length / evolution.Count(s => s == evolution[0]);
         output.WriteLine($"loop size is {loopLength}");
 
-        foreach (var (state, index) in evolution.Select((s,i) => (s,i))) output.WriteLine($"{index+1} {state}");
+        foreach (var (state, index) in evolution.Select((s, i) => (s, i))) output.WriteLine($"{index + 1} {state}");
 
         evolution.Contains(new Challenge.State(4, 4, 4, 4, 4)).Should().BeTrue();
     }
@@ -34,11 +34,11 @@ public class ChallengeTests(ITestOutputHelper output)
     public void BugOnCube_MinimalPathBetweenDiagonalVertices()
     {
         const int scale = 100;
-        var minDistanceData = Enumerable.Range(0, 45*scale)
+        var minDistanceData = Enumerable.Range(0, 45 * scale)
             .AsParallel()
             .WithExecutionMode(ParallelExecutionMode.ForceParallelism)
-            .WithDegreeOfParallelism(Environment.ProcessorCount-1)
-            .Select(grad => (grad: grad*1.0/scale, rad: grad*1.0/scale * Math.PI / 180))
+            .WithDegreeOfParallelism(Environment.ProcessorCount - 1)
+            .Select(grad => (grad: grad * 1.0 / scale, rad: grad * 1.0 / scale * Math.PI / 180))
             .Select(item => (item.grad, 1 / Math.Cos(item.rad) + 1 / Math.Cos(Math.PI / 4 - item.rad)))
             .MinBy(item => item.Item2);
 
@@ -73,19 +73,22 @@ public class ChallengeTests(ITestOutputHelper output)
     public void GenerateStatistics_DifferentTotals_FindMaxGroupSize()
     {
         var r = Enumerable
-            .Range(10, 10_000) //from 10 to 10_010
+            .Range(10, 100)
             .AsParallel()
             .WithExecutionMode(ParallelExecutionMode.ForceParallelism)
             .WithDegreeOfParallelism(Environment.ProcessorCount - 1)
             .Select(n => LinksInTeams
                 .GenerateStatistics(n)
                 .MinBy(s => s.mLinks))
-            .MaxBy(s => s.n/s.m + 1)
+            .MaxBy(s => s.n / s.m + 1)
             ;
 
-        output.WriteLine($"case of the biggest group is" +
-                         $"{r.n} -> {r.nLinks} vs {r.m} -> {r.mLinks}" +
-                         $" of {r.n % r.m} by {r.n / r.m + 1}" +
-                         $" and {r.m - r.n % r.m} by {r.n / r.m}");
+        var report = $"case of the biggest group is" +
+                           $" {r.n} -> {r.nLinks:N0} vs {r.m} -> {r.mLinks:N0}";
+        if (r.n % r.m != 0)
+            report += $" of {r.n % r.m} by {r.n / r.m + 1}";
+        report += $" and {r.m - r.n % r.m} by {r.n / r.m}";
+        
+        output.WriteLine(report);
     }
 }
