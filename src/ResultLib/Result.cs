@@ -32,6 +32,21 @@ public static class ResultExtensions
         }
     }
 
+    public static async Task<Result<V>> Select<U, V>(this Task<U> current
+        , Func<U, Task<V>> projection)
+    {
+        var c = await current;
+        
+        try
+        {
+            return await projection(c);
+        }
+        catch (Exception exc)
+        {
+            return Result<V>.Fail(exc.ToString());
+        }
+    }
+
     public static Result<R> SelectMany<T, M, R>(this Result<T> current, Func<T, Result<M>> projection, Func<T, M, R> aggregator)
     {
         if (current.Error is not null)

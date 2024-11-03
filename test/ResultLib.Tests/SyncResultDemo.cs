@@ -14,6 +14,16 @@ public class SyncResultDemo(ITestOutputHelper output)
         }
     }
 
+    [Fact]
+    public async Task MakeThreeStepsAsync()
+    {
+        for (int i = 0; i < 15; i++)
+        {
+            var c = await Demo3();
+            output.WriteLine(c.Error ?? $"{c.Value}");
+        }
+    }
+
     private Result<C> Demo()
     {
         var a = GetA;
@@ -32,11 +42,23 @@ public class SyncResultDemo(ITestOutputHelper output)
         from c in GetC(dt, a, b)
         select c;
 
-    private Result<C> Demo2() => Result<DateTime>
-        .Success(DateTime.Now)
-        .SelectMany(GetA, (dt, a) => (dt, a))
-        .SelectMany(dtWa => GetB(dtWa.dt), (dtWa, b) => (dtWa.dt, dtWa.a, b))
-        .SelectMany(e => GetC(e.dt, e.a, e.b), (_, c) => c);
+    private async Task<Result<C>> Demo2() => await Task
+        .FromResult(Result<DateTime>.Success(DateTime.Now))
+        .SelectMany(GetA1, (dt, a) => (dt, a))
+        .SelectMany(dtWa => GetB2(dtWa.dt), (dtWa, b) => (dtWa.dt, dtWa.a, b))
+        .SelectMany(e => GetC1(e.dt, e.a, e.b), (_, c) => c);
+
+    private async Task<Result<C>> Demo3() =>
+        await 
+        from dt in Task.FromResult(Result<DateTime>.Success(DateTime.Now))
+        from a in GetA1(dt)
+        from b in GetB2(dt)
+        from c in GetC1(dt, a, b)
+        select c;
+
+    private async Task<Result<A>> GetA1(DateTime dt) => GetA(dt);
+    private async Task<Result<B>> GetB2(DateTime dt) => GetB(dt);
+    private async Task<Result<C>> GetC1(DateTime dt, A a, B b) => GetC(dt, a, b);
 
     private Result<A> GetA(DateTime dt)
         => dt.Microsecond % 2 == 0
