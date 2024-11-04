@@ -1,4 +1,5 @@
-﻿using ApprovalTests;
+﻿using System.Collections.Concurrent;
+using ApprovalTests;
 using ApprovalTests.Reporters;
 using ApprovalTests.Reporters.TestFrameworks;
 using FluentAssertions;
@@ -49,6 +50,7 @@ public class ChallengeTests(ITestOutputHelper output)
     [UseReporter(typeof(VisualStudioReporter), typeof(XUnit2Reporter))]
     public void GenerateStatistics_DifferentTotals_ObserveOptimal()
     {
+        LinksInTeams.ClearCache();
         var statistics = Enumerable
             .Range(9, 81) //from 9 to 90
             .Select(n => LinksInTeams
@@ -72,16 +74,33 @@ public class ChallengeTests(ITestOutputHelper output)
     [Fact]
     public void GenerateStatistics_DifferentTotals_FindMaxGroupSize()
     {
-        var r = Enumerable
-            .Range(10, 100)
-            .AsParallel()
-            .WithExecutionMode(ParallelExecutionMode.ForceParallelism)
-            .WithDegreeOfParallelism(Environment.ProcessorCount - 1)
-            .Select(n => LinksInTeams
-                .GenerateStatistics(n)
-                .MinBy(s => s.mLinks))
-            .MaxBy(s => s.n / s.m + 1)
-            ;
+        LinksInTeams.ClearCache();
+        var merger = new ConcurrentBag<(int n, long nLinks, int m, long mLinks)>();
+        
+        var organization = Enumerable.Range(10, 1000);//.Reverse();//.ToArray();
+
+        Parallel.ForEach(Partitioner.Create(organization, EnumerablePartitionerOptions.NoBuffering),
+            () => new List<(int n, long nLinks, int m, long mLinks)>(),
+            (n, _, _, local) =>
+            {
+                local.Add(LinksInTeams.GenerateStatistics(n).MinBy(s => s.mLinks));
+                return local;
+            },
+            local => merger.Add(local.Where(s => s.m != 0).MaxBy(s => s.n / s.m + 1))
+        );
+
+        var r = merger.Where(s => s.m != 0).MaxBy(s => s.n / s.m + 1);
+
+        //var r = Enumerable
+        //    .Range(10, 100_000)
+        //    .AsParallel()
+        //    .WithExecutionMode(ParallelExecutionMode.ForceParallelism)
+        //    .WithDegreeOfParallelism(Environment.ProcessorCount - 1)
+        //    .Select(n => LinksInTeams
+        //        .GenerateStatistics(n)
+        //        .MinBy(s => s.mLinks))
+        //    .MaxBy(s => s.n / s.m + 1)
+        //    ;
 
         var report = $"case of the biggest group is" +
                            $" {r.n} -> {r.nLinks:N0} vs {r.m} -> {r.mLinks:N0}";
