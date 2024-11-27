@@ -7,6 +7,7 @@ using Xunit.Abstractions;
 
 namespace Sudoku.Tests;
 
+[Trait("Category", "Unit")]
 public class ChallengeTests(ITestOutputHelper output)
 {
     [Fact]
