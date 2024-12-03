@@ -30,8 +30,11 @@ public class TrieHelpersTests(ITestOutputHelper output)
         output.WriteLine($"total words {frequencyDictionary.Values.Sum()}");
 
         var totalWordsNumber = TrieHelpers.GetTotalWordsCount(frequencyTree);
-
         totalWordsNumber.Should().Be(size);
+
+        var (mostPopular, maxCount) = TrieHelpers.FindTheMostPopularWord(frequencyTree);
+        output.WriteLine($"the most popular word '{mostPopular}' was met {maxCount} times");
+
         foreach (var word in words.Distinct().OrderByDescending(w => w.Length))
         {
             var count = TrieHelpers.GetWordCount(frequencyTree, word);

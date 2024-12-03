@@ -1,11 +1,13 @@
 ﻿using System.Buffers;
+using System.ComponentModel.DataAnnotations;
+using System.Text;
 
 namespace Sudoku;
 
 /// <summary> aka Lexical prefix tree  </summary>
-public class Trie(char value)
+public class Trie(Trie? parent, char value)
 {
-    //public Trie? Parent { get; init;}
+    public Trie? Parent { get; } = parent;
     public Dictionary<char, Trie> Children { get; } = new();
     public char Value { get; } = value;
     public int Counter { get; set; } = 0;
@@ -14,6 +16,41 @@ public class Trie(char value)
 public static class TrieHelpers
 {
     private static readonly SearchValues<char> _wordEnd = SearchValues.Create(".,:;!?/ \'\"\t\n\r()[]{}");
+
+    public static (string? word, int counter) FindTheMostPopularWord(Trie frequencyTree)
+    {
+        var maxCount = 0;
+        Trie? maxNode = null;
+    
+        var layer = new Queue<Trie>();
+        layer.Enqueue(frequencyTree);
+        
+        while (layer.Any())
+        {
+            var current = layer.Dequeue();
+
+            if (current.Counter > maxCount)
+            {
+                maxCount = current.Counter;
+                maxNode = current;
+            }
+        
+            foreach (var child in current.Children.Values)
+                layer.Enqueue(child);
+        }
+
+        if (maxNode is null) return (null, 0);
+
+        var symbols = new List<char>();
+        while (maxNode is not null)
+        {
+            symbols.Add(maxNode.Value);
+            maxNode = maxNode.Parent;
+        }
+
+        symbols.Reverse();
+        return (new string(symbols.Skip(1).ToArray()), maxCount);
+    }
 
     public static int GetTotalWordsCount(Trie frequencyTree)
     {
@@ -48,7 +85,7 @@ public static class TrieHelpers
 
     public static Trie BuildWordFrequencyTree(IEnumerable<string> source)
     {
-        var root = new Trie(' ');
+        var root = new Trie(null, ' ');
         foreach (var s in source)
         {
             var word = new List<char>(30);
@@ -75,7 +112,7 @@ public static class TrieHelpers
         {
             if (!current.Children.TryGetValue(word[i], out var child))
             {
-                child = new Trie(word[i]);
+                child = new Trie(current, word[i]);
                 current.Children.Add(word[i], child);
             }
             current = child;
@@ -83,7 +120,7 @@ public static class TrieHelpers
 
         if (!current.Children.TryGetValue(word.Last(), out var wordEnd))
         {
-            wordEnd = new Trie(word.Last());
+            wordEnd = new Trie(current, word.Last());
             current.Children.Add(word.Last(), wordEnd);
         }
         wordEnd.Counter++;
