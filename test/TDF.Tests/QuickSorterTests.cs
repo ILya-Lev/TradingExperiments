@@ -27,7 +27,7 @@ public class QuickSorterTests
             .Select(n => Random.Shared.Next(n + 10))
             .ToArray();
 
-        var sorter = new QuickSorterParallel<int>(_isBefore);
+        var sorter = new QuickSorterAsync<int>(_isBefore);
 
         var sorted = await sorter.Sort(source);
 

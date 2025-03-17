@@ -73,27 +73,41 @@ public class QuickSorterAsync<T>(Func<T, T, bool> isBefore) : IQuickSorter<T>
         if (IsSorted(array))
             return array;
 
-        return await DoSort(array, 0, array.Length - 1, Environment.ProcessorCount);
-    }
-    private async Task<T[]> DoSort(T[] array, int start, int end, int threads)
-    {
-        await Task.Yield();
+        var task = Task.Factory
+            .StartNew(() => DoSort(array, 0, array.Length - 1, Environment.ProcessorCount)
+            , CancellationToken.None
+            , TaskCreationOptions.None
+            , TaskScheduler.Default);
 
+        await task;
+        return array;
+    }
+
+    private void DoSort(T[] array, int start, int end, int threads)
+    {
         var middle = PutOneItemInItsFinalPosition(array, start, end);
 
-        if (threads > 0)
+        if (middle - 1 > start)
         {
-            var tasks = new List<Task<T[]>>();
-            if (middle - 1 > start) tasks.Add(DoSort(array, start, middle - 1, threads - 1));
-            if (end > middle + 1) tasks.Add(DoSort(array, middle + 1, end, threads - 2));
-            await Task.WhenAll(tasks);
-            return array;
+            if (threads > 1)
+                Task.Factory.StartNew(() => DoSort(array, start, middle - 1, threads - 1)
+                    , CancellationToken.None
+                    , TaskCreationOptions.AttachedToParent
+                    , TaskScheduler.Default);
+            else
+                DoSort(array, start, middle - 1, threads);
         }
 
-        if (middle - 1 > start) await DoSort(array, start, middle - 1, threads - 1);
-        if (end > middle + 1) await DoSort(array, middle + 1, end, threads - 2);
-
-        return array;
+        if (end > middle + 1)
+        {
+            if (threads > 1)
+                Task.Factory.StartNew(() => DoSort(array, middle + 1, end, threads - 1)
+                    , CancellationToken.None
+                    , TaskCreationOptions.AttachedToParent
+                    , TaskScheduler.Default);
+            else
+                DoSort(array, middle + 1, end, threads);
+        }
     }
 
     private bool IsSorted(T[] array)
@@ -218,9 +232,9 @@ public class QuickSorterParallelStack<T>(Func<T, T, bool> isBefore) : IQuickSort
 
             if (threads > 1)
                 Parallel.Invoke(new ParallelOptions()
-                    {
-                        MaxDegreeOfParallelism = Math.Max(1, threads)
-                    },
+                {
+                    MaxDegreeOfParallelism = Math.Max(1, threads)
+                },
                     () =>
                     {
                         Interlocked.Decrement(ref threads);

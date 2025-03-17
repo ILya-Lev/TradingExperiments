@@ -94,12 +94,12 @@ public class TdfQuickSorterPerformance
    | Method            | Mean      | Error    | StdDev    | Gen0       | Gen1      | Allocated |
    |------------------ |----------:|---------:|----------:|-----------:|----------:|----------:|
    | SortSingleThread  |  91.99 ms | 4.649 ms | 13.636 ms |          - |         - |   3.82 MB |
-   | SortAsync         | 164.34 ms | 7.496 ms | 21.748 ms | 21000.0000 | 1000.0000 |  95.43 MB |
+   | SortAsync         | 164.34 ms | 7.496 ms | 21.748 ms | 21000.0000 | 1000.0000 |  95.43 MB |//async await
    | SortParallel      |  34.70 ms | 2.329 ms |  6.719 ms |  6000.0000 |         - |   34.4 MB |
    | SortParallelStack |  96.16 ms | 4.432 ms | 12.716 ms | 11000.0000 |         - |  54.68 MB |
    
 
-   // * Summary * 10M elements
+// * Summary * 10M elements
    
    BenchmarkDotNet v0.14.0, Windows 11 (10.0.26100.3476)
    Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical cores
@@ -110,11 +110,11 @@ public class TdfQuickSorterPerformance
    Job=.NET 9.0  Runtime=.NET 9.0  InvocationCount=1
    UnrollFactor=1
    
-   | Method            | Mean       | Error    | StdDev    | Median     | Gen0        | Gen1      | Allocated |
-   |------------------ |-----------:|---------:|----------:|-----------:|------------:|----------:|----------:|
-   | SortSingleThread  |   888.8 ms | 19.35 ms |  55.22 ms |   890.9 ms |           - |         - |  38.15 MB |
-   | SortAsync         | 1,664.5 ms | 40.51 ms | 114.25 ms | 1,656.9 ms | 208000.0000 | 3000.0000 | 953.72 MB |
-   | SortParallel      |   289.1 ms | 18.79 ms |  54.53 ms |   271.9 ms |  68000.0000 |         - | 343.35 MB |
-   | SortParallelStack |   933.8 ms | 18.41 ms |  24.58 ms |   935.0 ms | 113000.0000 |         - |  546.8 MB |
+   | Method            | Mean     | Error    | StdDev   | Gen0        | Gen1      | Allocated |
+   |------------------ |---------:|---------:|---------:|------------:|----------:|----------:|
+   | SortSingleThread  | 848.6 ms | 26.22 ms | 72.22 ms |           - |         - |  38.15 MB |
+   | SortAsync         | 266.0 ms | 13.50 ms | 39.37 ms |  68000.0000 | 2000.0000 | 344.08 MB |//AttachedToParent
+   | SortParallel      | 245.2 ms | 10.29 ms | 29.35 ms |  68000.0000 |         - | 343.41 MB |
+   | SortParallelStack | 885.0 ms | 17.61 ms | 22.90 ms | 113000.0000 |         - | 546.78 MB |
    
  */
