@@ -5,8 +5,16 @@ using Xunit.Abstractions;
 namespace Sudoku.Tests;
 
 [Trait("Category", "Integration")]
-public class SolverTests(ITestOutputHelper output)
+public class Solver01Tests(ITestOutputHelper output)
 {
+    private static Cell[] DigitsToCells(int[][] digits) => digits
+        .SelectMany((row, r) => row.Select((d, c) => new Sudoku01.Cell(r, c, d)))
+        .ToArray();
+
+    private static string Print(Sudoku01.Field field)
+        =>" " + string.Join(" ", field.Cells
+            .Select(c => c.Column == 8 ? $"{c.Digit}{Environment.NewLine}" : $"{c.Digit}"));
+
     [Fact]
     public void Solve_Easy001_Solved()
     {
@@ -25,14 +33,15 @@ public class SolverTests(ITestOutputHelper output)
             new []{0,7,1,9,0,6,0,4,0},
         };
 
-        var initial = new Field(digits);
+        var initial = new Sudoku01.Field(DigitsToCells(digits));
 
-        var solved = Solver.Solve(initial)!;
+        var solved = Solver01.Solve(initial)!;
 
-        output.WriteLine(solved.Print());
+        output.WriteLine(Print(solved));
         solved.IsSolved.Should().BeTrue();
+        solved.FindInconsistencies().Should().BeEmpty();
     }
-
+    
     [Fact]
     public void Solve_Medium001_Solved()
     {
@@ -51,12 +60,13 @@ public class SolverTests(ITestOutputHelper output)
             new []{9,0,4,5,0,0,0,7,2},
         };
 
-        var initial = new Field(digits);
+        var initial = new Sudoku01.Field(DigitsToCells(digits));
 
-        var solved = Solver.Solve(initial)!;
+        var solved = Solver01.Solve(initial)!;
 
-        output.WriteLine(solved.Print());
+        output.WriteLine(Print(solved));
         solved.IsSolved.Should().BeTrue();
+        solved.FindInconsistencies().Should().BeEmpty();
     }
 
     [Fact]
@@ -77,12 +87,13 @@ public class SolverTests(ITestOutputHelper output)
             new []{0,0,0,0,0,7,6,1,0},
         };
 
-        var initial = new Field(digits);
+        var initial = new Sudoku01.Field(DigitsToCells(digits));
 
-        var solved = Solver.Solve(initial)!;
+        var solved = Solver01.Solve(initial)!;
 
-        output.WriteLine(solved.Print());
+        output.WriteLine(Print(solved));
         solved.IsSolved.Should().BeTrue();
+        solved.FindInconsistencies().Should().BeEmpty();
     }
 
     [Fact]//double split fit - allows to solve
@@ -103,12 +114,13 @@ public class SolverTests(ITestOutputHelper output)
             new []{0,0,0,0,0,6,8,0,0},
         };
 
-        var initial = new Field(digits);
+        var initial = new Sudoku01.Field(DigitsToCells(digits));
 
-        var solved = Solver.Solve(initial)!;
+        var solved = Solver01.Solve(initial)!;
 
-        output.WriteLine(solved.Print());
+        output.WriteLine(Print(solved));
         solved.IsSolved.Should().BeTrue();
+        solved.FindInconsistencies().Should().BeEmpty();
     }
 
     [Fact]//double split fit - allows to solve
@@ -129,12 +141,13 @@ public class SolverTests(ITestOutputHelper output)
             new []{7,0,0,0,1,0,5,0,8},
         };
 
-        var initial = new Field(digits);
+        var initial = new Sudoku01.Field(DigitsToCells(digits));
 
-        var solved = Solver.Solve(initial)!;
+        var solved = Solver01.Solve(initial)!;
 
-        output.WriteLine(solved.Print());
+        output.WriteLine(Print(solved));
         solved.IsSolved.Should().BeTrue();
+        solved.FindInconsistencies().Should().BeEmpty();
     }
 
     [Fact]//double split fit - allows to solve
@@ -155,12 +168,13 @@ public class SolverTests(ITestOutputHelper output)
             new []{5,0,0,0,4,0,0,0,0},
         };
 
-        var initial = new Field(digits);
+        var initial = new Sudoku01.Field(DigitsToCells(digits));
 
-        var solved = Solver.Solve(initial)!;
+        var solved = Solver01.Solve(initial)!;
 
-        output.WriteLine(solved.Print());
+        output.WriteLine(Print(solved));
         solved.IsSolved.Should().BeTrue();
+        solved.FindInconsistencies().Should().BeEmpty();
     }
 
     [Fact]//double split fit - allows to solve
@@ -181,12 +195,13 @@ public class SolverTests(ITestOutputHelper output)
             new []{4,0,0,0,0,0,0,0,0},
         };
 
-        var initial = new Field(digits);
+        var initial = new Sudoku01.Field(DigitsToCells(digits));
 
-        var solved = Solver.Solve(initial)!;
+        var solved = Solver01.Solve(initial)!;
 
-        output.WriteLine(solved.Print());
+        output.WriteLine(Print(solved));
         solved.IsSolved.Should().BeTrue();
+        solved.FindInconsistencies().Should().BeEmpty();
     }
 
     [Fact]//double split fit - allows to solve
@@ -207,12 +222,13 @@ public class SolverTests(ITestOutputHelper output)
             new []{0,0,7,5,0,0,0,0,9},
         };
 
-        var initial = new Field(digits);
+        var initial = new Sudoku01.Field(DigitsToCells(digits));
 
-        var solved = Solver.Solve(initial)!;
+        var solved = Solver01.Solve(initial)!;
 
-        output.WriteLine(solved.Print());
+        output.WriteLine(Print(solved));
         solved.IsSolved.Should().BeTrue();
+        solved.FindInconsistencies().Should().BeEmpty();
     }
 
     [Fact]//double split fit - allows to solve
@@ -233,17 +249,18 @@ public class SolverTests(ITestOutputHelper output)
             new []{0,0,7,1,0,0,5,4,0},
         };
 
-        var initial = new Field(digits);
+        var initial = new Sudoku01.Field(DigitsToCells(digits));
 
-        var solved = Solver.Solve(initial)!;
+        var solved = Solver01.Solve(initial)!;
 
-        output.WriteLine(solved.Print());
+        output.WriteLine(Print(solved));
         solved.IsSolved.Should().BeTrue();
+        solved.FindInconsistencies().Should().BeEmpty();
 
-        var steps = MaxPointsFiller.GetFillingSequence(initial, solved).ToArray();
-        foreach (var (r,c,d) in steps)
-        {
-            output.WriteLine($"{r} {c} {d}");
-        }
+        //var steps = MaxPointsFiller.GetFillingSequence(initial, solved).ToArray();
+        //foreach (var (r,c,d) in steps)
+        //{
+        //    output.WriteLine($"{r} {c} {d}");
+        //}
     }
 }
