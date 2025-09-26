@@ -2,7 +2,7 @@
 
 namespace Sudoku01;
 
-[DebuggerDisplay("{Row} {Column} {Digit}")]
+[DebuggerDisplay("{Row} {Column} {Digit}: {PossibleDigits}")]
 public class Cell
 {
     private readonly List<int> _possibleDigits;
@@ -129,38 +129,80 @@ public static class Solver01
 {
     public static Field Solve(Field initial)
     {
+        var states = new Stack<(Field f, int Row, int Column, int Digit)>();
         var current = new Field(initial.Cells.Select(c => new Cell(c.Row, c.Column, c.Digit)).ToArray());
+        states.Push((current, 0, 0, 0));
 
-        for (int attempt = 0; attempt < 20; attempt++)
+        while (states.Any())
         {
-            var before = current.UnsolvedCount;
-            foreach (var cell in current.Cells)
-            {
-                if (!cell.IsEmpty)
-                    continue;
+            var s = states.Pop();
+            current = new Field(s.f.Cells.Select(c => new Cell(c.Row, c.Column, c.Digit)).ToArray());
+            if (s.Digit > 0)
+                SetDigit(current.GetCell(s.Row, s.Column), s.Digit, current);
 
-                TryFillStructure(current, current.GetRow(cell.Row));
-                TryFillStructure(current, current.GetColumn(cell.Column));
-                TryFillStructure(current, current.GetSquare(cell.Row, cell.Column));
+            try
+            {
+                var solution = DoSolve(current);
+                if (solution is not null) return solution;
+            }
+            catch (InvalidOperationException exc)
+            {
+                continue; //i.e., something went wrong, try another path
             }
 
-            var after = current.UnsolvedCount;
-            if (after == 0) return current;//i.e. already solved
-
-            if (after < before) continue;   //i.e., this mechanism still works
-
-            foreach (var cell in current.Cells)
-            {
-                if (!cell.IsEmpty)
-                    continue;
-
-                RestrictPossibleDigitsByPair(current, current.GetRow(cell.Row));
-                RestrictPossibleDigitsByPair(current, current.GetColumn(cell.Column));
-                RestrictPossibleDigitsByPair(current, current.GetSquare(cell.Row, cell.Column));
-            }
+            if (current.FindInconsistencies().Any())
+                continue; //i.e., something went wrong, try another path
+            
+            var bifurcation = current.Cells.Where(c => c.IsEmpty).OrderBy(c => c.PossibleDigits.Count).First();
+            foreach (var possibleDigit in bifurcation.PossibleDigits)
+                states.Push((current, bifurcation.Row, bifurcation.Column, possibleDigit));
         }
 
         return current;
+    }
+
+    private static Field? DoSolve(Field current)
+    {
+        for (int attempt = 0; attempt < 20; attempt++)
+        {
+            if (!FillInCells(current))
+                break;
+            if (current.IsSolved && !current.FindInconsistencies().Any())
+                return current;
+        }
+
+        return null;
+    }
+
+    private static bool FillInCells(Field current)
+    {
+        var before = current.UnsolvedCount;
+        foreach (var cell in current.Cells)
+        {
+            if (!cell.IsEmpty)
+                continue;
+
+            TryFillStructure(current, current.GetRow(cell.Row));
+            TryFillStructure(current, current.GetColumn(cell.Column));
+            TryFillStructure(current, current.GetSquare(cell.Row, cell.Column));
+        }
+
+        var after = current.UnsolvedCount;
+        if (current.IsSolved && current.FindInconsistencies().Any()) return false; //i.e., something went wrong, try another path
+
+        if (after < before) return true;   //i.e., this mechanism still works
+
+        foreach (var cell in current.Cells)
+        {
+            if (!cell.IsEmpty)
+                continue;
+
+            RestrictPossibleDigitsByPair(current, current.GetRow(cell.Row));
+            RestrictPossibleDigitsByPair(current, current.GetColumn(cell.Column));
+            RestrictPossibleDigitsByPair(current, current.GetSquare(cell.Row, cell.Column));
+        }
+
+        return true;
     }
 
     private static void TryFillStructure(Field field, IReadOnlyList<Cell> structure)
