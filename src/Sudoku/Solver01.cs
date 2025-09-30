@@ -92,6 +92,7 @@ public class Field(Cell[] cells)
     public IReadOnlyList<Cell> Cells { get; } = cells;
     public bool IsSolved => Cells.All(c => !c.IsEmpty);
     public int UnsolvedCount => Cells.Count(c => c.IsEmpty);
+    
     public Cell GetCell(int row, int column) => Cells[row * Size + column];
 
     public IReadOnlyList<Cell> GetRow(int row) => Cells.Where(c => c.Row == row).ToArray();
@@ -125,10 +126,34 @@ public class Field(Cell[] cells)
     }
 }
 
+public class FillingsLog
+{
+    private readonly Dictionary<(int Row, int Column), int> _seenCells = new(); //each cell could be filled in only once; if we already filled it in, we are changing the trajectory and should adjust the log
+    private readonly List<(int Row, int Column, int Digit)> _fillings = new();//what digit was set into which cell; the order is important
+
+    public IReadOnlyList<(int Row, int Column, int Digit)> Fillings => _fillings;
+
+    public void Register(int row, int column, int digit)
+    {
+        if (_seenCells.TryGetValue((row, column), out var index))
+        {
+            for (var i = index; i < _fillings.Count; i++)
+            {
+                _seenCells.Remove((_fillings[i].Row, _fillings[i].Column));
+            }
+            _fillings.RemoveRange(index, _fillings.Count - index);
+        }
+
+        _fillings.Add((row, column, digit));
+        _seenCells.Add((row, column), _fillings.Count - 1);
+    }
+}
+
 public static class Solver01
 {
-    public static Field Solve(Field initial)
+    public static (Field current, FillingsLog fillings) Solve(Field initial)
     {
+        var fillings = new FillingsLog();
         var states = new Stack<(Field f, int Row, int Column, int Digit)>();
         var current = new Field(initial.Cells.Select(c => new Cell(c.Row, c.Column, c.Digit)).ToArray());
         states.Push((current, 0, 0, 0));
@@ -138,12 +163,12 @@ public static class Solver01
             var s = states.Pop();
             current = new Field(s.f.Cells.Select(c => new Cell(c.Row, c.Column, c.Digit)).ToArray());
             if (s.Digit > 0)
-                SetDigit(current.GetCell(s.Row, s.Column), s.Digit, current);
+                SetDigit(current.GetCell(s.Row, s.Column), s.Digit, current, fillings);
 
             try
             {
-                var solution = DoSolve(current);
-                if (solution is not null) return solution;
+                var solution = DoSolve(current, fillings);
+                if (solution is not null) return (solution, fillings);
             }
             catch (InvalidOperationException exc)
             {
@@ -158,14 +183,14 @@ public static class Solver01
                 states.Push((current, bifurcation.Row, bifurcation.Column, possibleDigit));
         }
 
-        return current;
+        return (current, fillings);
     }
 
-    private static Field? DoSolve(Field current)
+    private static Field? DoSolve(Field current, FillingsLog fillings)
     {
         for (int attempt = 0; attempt < 20; attempt++)
         {
-            if (!FillInCells(current))
+            if (!FillInCells(current, fillings))
                 break;
             if (current.IsSolved && !current.FindInconsistencies().Any())
                 return current;
@@ -174,7 +199,7 @@ public static class Solver01
         return null;
     }
 
-    private static bool FillInCells(Field current)
+    private static bool FillInCells(Field current, FillingsLog fillings)
     {
         var before = current.UnsolvedCount;
         foreach (var cell in current.Cells)
@@ -182,9 +207,9 @@ public static class Solver01
             if (!cell.IsEmpty)
                 continue;
 
-            TryFillStructure(current, current.GetRow(cell.Row));
-            TryFillStructure(current, current.GetColumn(cell.Column));
-            TryFillStructure(current, current.GetSquare(cell.Row, cell.Column));
+            TryFillStructure(current, current.GetRow(cell.Row), fillings);
+            TryFillStructure(current, current.GetColumn(cell.Column), fillings);
+            TryFillStructure(current, current.GetSquare(cell.Row, cell.Column), fillings);
         }
 
         var after = current.UnsolvedCount;
@@ -197,28 +222,30 @@ public static class Solver01
             if (!cell.IsEmpty)
                 continue;
 
-            RestrictPossibleDigitsByPair(current, current.GetRow(cell.Row));
-            RestrictPossibleDigitsByPair(current, current.GetColumn(cell.Column));
-            RestrictPossibleDigitsByPair(current, current.GetSquare(cell.Row, cell.Column));
+            RestrictPossibleDigitsByPair(current, current.GetRow(cell.Row), fillings);
+            RestrictPossibleDigitsByPair(current, current.GetColumn(cell.Column), fillings);
+            RestrictPossibleDigitsByPair(current, current.GetSquare(cell.Row, cell.Column), fillings);
         }
 
         return true;
     }
 
-    private static void TryFillStructure(Field field, IReadOnlyList<Cell> structure)
+    private static void TryFillStructure(Field field, IReadOnlyList<Cell> structure, FillingsLog fillings)
     {
         var occupiedDigits = structure.Where(c => !c.IsEmpty).Select(c => c.Digit).ToArray();
         foreach (var cell in structure.Where(c => c.IsEmpty))
         {
             cell.RemovePossibleDigits(occupiedDigits);
             if (cell.PossibleDigits.Count == 1)
-                SetDigit(cell, cell.PossibleDigits[0], field);
+                SetDigit(cell, cell.PossibleDigits[0], field, fillings);
         }
     }
 
-    private static void SetDigit(Cell cell, int digit, Field field)
+    private static void SetDigit(Cell cell, int digit, Field field, FillingsLog fillings)
     {
         cell.SetDigit(digit);
+
+        fillings.Register(cell.Row, cell.Column, digit);
 
         RemovePossibleDigitOnSetDigit(field.GetRow(cell.Row), digit);
         RemovePossibleDigitOnSetDigit(field.GetColumn(cell.Column), digit);
@@ -231,7 +258,7 @@ public static class Solver01
             sibling.RemovePossibleDigit(digit);
     }
 
-    private static void RestrictPossibleDigitsByPair(Field field, IReadOnlyList<Cell> structure)
+    private static void RestrictPossibleDigitsByPair(Field field, IReadOnlyList<Cell> structure, FillingsLog fillings)
     {
         var dwc = GroupCellsByPossibleDigits(structure);
 
@@ -239,7 +266,7 @@ public static class Solver01
         {
             if (dwc[k].Cells.Length == 1) // && dwc[k].Cells[0].IsEmpty)
             {
-                SetDigit(dwc[k].Cells[0], dwc[k].Digit, field);
+                SetDigit(dwc[k].Cells[0], dwc[k].Digit, field, fillings);
             }
         }
 

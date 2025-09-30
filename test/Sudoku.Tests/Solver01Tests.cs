@@ -12,8 +12,12 @@ public class Solver01Tests(ITestOutputHelper output)
         .ToArray();
 
     private static string Print(Sudoku01.Field field)
-        =>" " + string.Join(" ", field.Cells
+        => " " + string.Join(" ", field.Cells
             .Select(c => c.Column == 8 ? $"{c.Digit}{Environment.NewLine}" : $"{c.Digit}"));
+
+    private static string Print(Sudoku01.FillingsLog log)
+        => string.Join(Environment.NewLine, log.Fillings
+            .Select((e, idx) => $"{idx}: ({e.Row}, {e.Column}) -> {e.Digit}"));
 
     [Fact]
     public void Solve_Easy001_Solved()
@@ -23,11 +27,11 @@ public class Solver01Tests(ITestOutputHelper output)
             new []{0,0,5,3,4,2,0,8,0},
             new []{4,0,0,0,0,0,0,0,0},
             new []{6,8,0,1,0,0,0,5,0},
-            
+
             new []{0,0,4,0,1,0,0,3,0},
             new []{1,3,2,6,0,5,0,0,0},
             new []{0,9,0,7,0,4,1,0,2},
-            
+
             new []{0,4,0,0,0,1,7,0,0},
             new []{2,0,6,4,7,3,8,0,1},
             new []{0,7,1,9,0,6,0,4,0},
@@ -35,13 +39,15 @@ public class Solver01Tests(ITestOutputHelper output)
 
         var initial = new Sudoku01.Field(DigitsToCells(digits));
 
-        var solved = Solver01.Solve(initial)!;
+        var (solved, fillingsLog) = Solver01.Solve(initial)!;
 
         output.WriteLine(Print(solved));
+        output.WriteLine(Print(fillingsLog));
         solved.IsSolved.Should().BeTrue();
         solved.FindInconsistencies().Should().BeEmpty();
+        fillingsLog.Fillings.Select(e => (e.Row, e.Column)).Should().OnlyHaveUniqueItems();
     }
-    
+
     [Fact]
     public void Solve_Medium001_Solved()
     {
@@ -50,11 +56,11 @@ public class Solver01Tests(ITestOutputHelper output)
             new []{8,0,2,4,0,0,1,5,7},
             new []{1,0,6,7,5,3,0,0,0},
             new []{0,0,5,0,0,8,3,9,6},
-            
+
             new []{0,2,9,0,0,5,0,6,0},
             new []{0,0,8,0,6,0,4,0,5},
             new []{0,0,1,3,7,0,0,0,0},
-            
+
             new []{0,1,0,8,0,7,5,0,0},
             new []{0,0,7,0,4,0,0,0,0},
             new []{9,0,4,5,0,0,0,7,2},
@@ -62,11 +68,13 @@ public class Solver01Tests(ITestOutputHelper output)
 
         var initial = new Sudoku01.Field(DigitsToCells(digits));
 
-        var solved = Solver01.Solve(initial)!;
+        var (solved, fillingsLog) = Solver01.Solve(initial)!;
 
         output.WriteLine(Print(solved));
+        output.WriteLine(Print(fillingsLog));
         solved.IsSolved.Should().BeTrue();
         solved.FindInconsistencies().Should().BeEmpty();
+        fillingsLog.Fillings.Select(e => (e.Row, e.Column)).Should().OnlyHaveUniqueItems();
     }
 
     [Fact]
@@ -77,11 +85,11 @@ public class Solver01Tests(ITestOutputHelper output)
             new []{0,8,0,7,0,0,0,0,6},
             new []{0,0,0,2,0,0,0,4,0},
             new []{7,5,1,4,9,0,0,3,0},
-            
+
             new []{0,0,4,0,6,0,3,0,8},
             new []{3,0,0,1,0,5,4,0,0},
             new []{0,0,0,0,0,4,5,6,0},
-            
+
             new []{0,7,0,0,0,0,0,0,0},
             new []{0,3,8,0,4,0,2,0,0},
             new []{0,0,0,0,0,7,6,1,0},
@@ -89,11 +97,13 @@ public class Solver01Tests(ITestOutputHelper output)
 
         var initial = new Sudoku01.Field(DigitsToCells(digits));
 
-        var solved = Solver01.Solve(initial)!;
+        var (solved, fillingsLog) = Solver01.Solve(initial)!;
 
         output.WriteLine(Print(solved));
+        output.WriteLine(Print(fillingsLog));
         solved.IsSolved.Should().BeTrue();
         solved.FindInconsistencies().Should().BeEmpty();
+        fillingsLog.Fillings.Select(e => (e.Row, e.Column)).Should().OnlyHaveUniqueItems();
     }
 
     [Fact]//double split fit - allows to solve
@@ -104,11 +114,11 @@ public class Solver01Tests(ITestOutputHelper output)
             new []{6,0,0,0,3,0,0,9,0},
             new []{0,0,0,7,0,4,5,8,3},
             new []{0,3,0,5,0,0,1,0,0},
-            
+
             new []{5,6,8,4,0,0,9,0,0},
             new []{0,4,0,0,0,0,6,0,0},
             new []{0,0,7,6,0,3,0,0,0},
-            
+
             new []{0,0,1,0,0,0,0,0,2},
             new []{9,0,0,8,7,0,3,5,0},
             new []{0,0,0,0,0,6,8,0,0},
@@ -116,11 +126,13 @@ public class Solver01Tests(ITestOutputHelper output)
 
         var initial = new Sudoku01.Field(DigitsToCells(digits));
 
-        var solved = Solver01.Solve(initial)!;
+        var (solved, fillingsLog) = Solver01.Solve(initial)!;
 
         output.WriteLine(Print(solved));
+        output.WriteLine(Print(fillingsLog));
         solved.IsSolved.Should().BeTrue();
         solved.FindInconsistencies().Should().BeEmpty();
+        fillingsLog.Fillings.Select(e => (e.Row, e.Column)).Should().OnlyHaveUniqueItems();
     }
 
     [Fact]//double split fit - allows to solve
@@ -131,11 +143,11 @@ public class Solver01Tests(ITestOutputHelper output)
             new []{0,2,0,5,0,8,9,0,3},
             new []{6,8,0,1,9,0,0,0,0},
             new []{0,0,0,3,4,0,0,0,7},
-            
+
             new []{0,0,1,9,0,0,0,4,5},
             new []{0,0,0,0,0,0,8,0,0},
             new []{3,0,9,0,0,0,0,0,0},
-            
+
             new []{0,0,2,0,0,5,0,0,0},
             new []{0,0,0,7,0,0,1,6,0},
             new []{7,0,0,0,1,0,5,0,8},
@@ -143,11 +155,13 @@ public class Solver01Tests(ITestOutputHelper output)
 
         var initial = new Sudoku01.Field(DigitsToCells(digits));
 
-        var solved = Solver01.Solve(initial)!;
+        var (solved, fillingsLog) = Solver01.Solve(initial)!;
 
         output.WriteLine(Print(solved));
+        output.WriteLine(Print(fillingsLog));
         solved.IsSolved.Should().BeTrue();
         solved.FindInconsistencies().Should().BeEmpty();
+        fillingsLog.Fillings.Select(e => (e.Row, e.Column)).Should().OnlyHaveUniqueItems();
     }
 
     [Fact]//double split fit - allows to solve
@@ -158,11 +172,11 @@ public class Solver01Tests(ITestOutputHelper output)
             new []{4,0,0,0,0,0,7,0,0},
             new []{0,9,0,1,0,0,0,0,0},
             new []{0,0,3,0,0,9,6,0,8},
-            
+
             new []{0,0,2,0,0,0,0,1,0},
             new []{6,0,0,5,0,0,8,0,2},
             new []{0,0,0,0,0,8,0,7,0},
-            
+
             new []{0,0,6,0,0,1,9,0,3},
             new []{0,0,0,0,0,0,0,2,0},
             new []{5,0,0,0,4,0,0,0,0},
@@ -170,11 +184,13 @@ public class Solver01Tests(ITestOutputHelper output)
 
         var initial = new Sudoku01.Field(DigitsToCells(digits));
 
-        var solved = Solver01.Solve(initial)!;
+        var (solved, fillingsLog) = Solver01.Solve(initial)!;
 
         output.WriteLine(Print(solved));
+        output.WriteLine(Print(fillingsLog));
         solved.IsSolved.Should().BeTrue();
         solved.FindInconsistencies().Should().BeEmpty();
+        fillingsLog.Fillings.Select(e => (e.Row, e.Column)).Should().OnlyHaveUniqueItems();
     }
 
     [Fact]//double split fit - allows to solve
@@ -185,11 +201,11 @@ public class Solver01Tests(ITestOutputHelper output)
             new []{3,0,0,0,8,0,9,0,0},
             new []{0,8,4,7,0,0,6,0,0},
             new []{5,0,0,0,0,0,0,4,0},
-            
+
             new []{0,0,0,5,0,0,0,0,9},
             new []{0,3,0,0,0,0,0,0,0},
             new []{0,6,8,0,9,0,0,1,0},
-            
+
             new []{0,9,1,0,5,0,0,6,0},
             new []{0,0,0,0,0,2,7,0,0},
             new []{4,0,0,0,0,0,0,0,0},
@@ -197,11 +213,13 @@ public class Solver01Tests(ITestOutputHelper output)
 
         var initial = new Sudoku01.Field(DigitsToCells(digits));
 
-        var solved = Solver01.Solve(initial)!;
+        var (solved, fillingsLog) = Solver01.Solve(initial)!;
 
         output.WriteLine(Print(solved));
+        output.WriteLine(Print(fillingsLog));
         solved.IsSolved.Should().BeTrue();
         solved.FindInconsistencies().Should().BeEmpty();
+        fillingsLog.Fillings.Select(e => (e.Row, e.Column)).Should().OnlyHaveUniqueItems();
     }
 
     [Fact]//double split fit - allows to solve
@@ -212,11 +230,11 @@ public class Solver01Tests(ITestOutputHelper output)
             new []{0,0,8,0,4,0,0,0,0},
             new []{0,0,2,0,0,1,4,0,3},
             new []{0,0,0,0,0,0,8,0,0},
-            
+
             new []{0,0,0,9,0,0,5,6,0},
             new []{5,0,0,0,8,7,0,0,0},
             new []{0,0,0,2,0,0,0,9,0},
-            
+
             new []{0,3,1,0,0,0,0,0,0},
             new []{0,9,0,0,0,2,7,0,0},
             new []{0,0,7,5,0,0,0,0,9},
@@ -224,11 +242,13 @@ public class Solver01Tests(ITestOutputHelper output)
 
         var initial = new Sudoku01.Field(DigitsToCells(digits));
 
-        var solved = Solver01.Solve(initial)!;
+        var (solved, fillingsLog) = Solver01.Solve(initial)!;
 
         output.WriteLine(Print(solved));
+        output.WriteLine(Print(fillingsLog));
         solved.IsSolved.Should().BeTrue();
         solved.FindInconsistencies().Should().BeEmpty();
+        fillingsLog.Fillings.Select(e => (e.Row, e.Column)).Should().OnlyHaveUniqueItems();
     }
 
     [Fact]//double split fit - allows to solve
@@ -239,11 +259,11 @@ public class Solver01Tests(ITestOutputHelper output)
             new []{0,9,8,0,0,4,2,5,0},
             new []{0,0,0,2,0,0,0,0,3},
             new []{0,0,5,0,0,0,0,0,8},
-            
+
             new []{0,0,3,4,0,0,1,7,0},
             new []{6,0,0,0,0,9,0,0,0},
             new []{0,0,0,0,0,0,0,0,2},
-            
+
             new []{0,3,0,0,7,0,0,0,0},
             new []{0,0,0,0,0,0,0,8,0},
             new []{0,0,7,1,0,0,5,4,0},
@@ -251,16 +271,47 @@ public class Solver01Tests(ITestOutputHelper output)
 
         var initial = new Sudoku01.Field(DigitsToCells(digits));
 
-        var solved = Solver01.Solve(initial)!;
+        var (solved, fillingsLog) = Solver01.Solve(initial)!;
 
         output.WriteLine(Print(solved));
+        output.WriteLine(Print(fillingsLog));
         solved.IsSolved.Should().BeTrue();
         solved.FindInconsistencies().Should().BeEmpty();
+        fillingsLog.Fillings.Select(e => (e.Row, e.Column)).Should().OnlyHaveUniqueItems();
 
         //var steps = MaxPointsFiller.GetFillingSequence(initial, solved).ToArray();
         //foreach (var (r,c,d) in steps)
         //{
         //    output.WriteLine($"{r} {c} {d}");
         //}
+    }
+
+    [Fact]//double split fit - allows to solve
+    public void Solve_Extreme005_Solved()
+    {
+        var digits = new int[][]
+        {
+            new []{0,0,8,0,0,7,9,0,0},
+            new []{0,4,2,0,0,5,0,0,0},
+            new []{0,0,0,6,0,0,0,5,0},
+
+            new []{0,0,3,0,0,6,8,0,1},
+            new []{0,0,0,0,0,0,0,0,6},
+            new []{9,0,0,0,7,0,0,0,0},
+
+            new []{0,8,0,1,3,0,4,7,0},
+            new []{0,0,0,0,9,0,0,0,0},
+            new []{0,1,0,0,0,0,0,0,0},
+        };
+
+        var initial = new Sudoku01.Field(DigitsToCells(digits));
+
+        var (solved, fillingsLog) = Solver01.Solve(initial)!;
+
+        output.WriteLine(Print(solved));
+        output.WriteLine(Print(fillingsLog));
+        solved.IsSolved.Should().BeTrue();
+        solved.FindInconsistencies().Should().BeEmpty();
+        fillingsLog.Fillings.Select(e => (e.Row, e.Column)).Should().OnlyHaveUniqueItems();
     }
 }
