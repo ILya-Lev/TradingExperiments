@@ -7,7 +7,7 @@ public class HanoiTowers
     public static string Materialize((int current, int from, int to) move) => $"{move.current}: {move.from} -> {move.to}";
     public static IEnumerable<(int current, int from, int to)> Solve(int n) => DoSolve(n, 1, 2, 3);
 
-    //from concat to a couple of forech = from exponential memory consumption growth to constant ~21KB vs 12GB+
+    //from concat to a couple of foreach = from exponential memory consumption growth to constant ~21KB vs 12GB+
     //from second recursive call to while(true) = 4x time reduction for n=20
     private static IEnumerable<(int current, int from, int to)> DoSolve(int n, int start, int buffer, int end)
     {
