@@ -100,5 +100,4 @@ public class QuickSorterTests(ITestOutputHelper output)
             output.WriteLine(threadId.ToString());
         }
     }
-
 }
