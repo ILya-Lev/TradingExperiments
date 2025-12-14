@@ -6,10 +6,18 @@ namespace Sudoku.Tests;
 public class QuickSorter001Tests
 {
     [Fact]
+    public void Sort_Simple_Asc()
+    {
+        var source = new[] { 1, 4, 7, 2, 8, 3, 9, 5, 6 };
+        QuickSorter001.Sort(source).Should().BeInAscendingOrder();
+        QuickSorter001.SortParallel(source).Should().BeInAscendingOrder();
+    }
+    
+    [Fact]
     public void Sort_Desc_Asc()
     {
         var source = Enumerable.Range(1, 1_000_000).Reverse().ToArray();
-        QuickSorter001.Sort(source).Should().BeInAscendingOrder();
+        QuickSorter001.SortParallel(source).Should().BeInAscendingOrder();
     }
 
     [Fact]
