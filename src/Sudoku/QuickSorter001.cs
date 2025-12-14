@@ -5,19 +5,18 @@ internal static class QuickSorter001
     public static IReadOnlyList<T> Sort<T>(IEnumerable<T> source) where T : IComparable<T>
     {
         var s = source.ToArray();
-        var boundaries = new Stack<(int start, int end)>();
-        boundaries.Push((0, s.Length));
+        var boundaries = new Stack<(int start, int end)>(CalculateCapacity(s));
+        boundaries.Push((0, s.Length - 1));
 
         while (boundaries.Any())
         {
             var (start, end) = boundaries.Pop();
-            var seedIndex = Random.Shared.Next(start, end);
-            (s[start], s[seedIndex]) = (s[seedIndex], s[start]);//swap
+            if (start >= end) continue;
 
             var head = TraverseRange(s, start, end);
 
-            if (!HasConverged(s, start, head)) boundaries.Push((start, head));
-            if (!HasConverged(s, head, end)) boundaries.Push((head, end));
+            boundaries.Push((start, head));
+            boundaries.Push((head + 1, end));
         }
 
         return s;
@@ -27,40 +26,55 @@ internal static class QuickSorter001
     public static IList<T> SortParallel<T>(IList<T> source) where T : IComparable<T>
     {
         var s = source.ToArray();
-        SortRecursively(s, 0, s.Length).Wait();
+        SortRecursively(s, 0, s.Length - 1, Environment.ProcessorCount);
         return s;
     }
 
-    private static Task SortRecursively<T>(T[] s, int start, int end) where T : IComparable<T>
+    private static void SortRecursively<T>(T[] s, int start, int end, int availableThreads)
+        where T : IComparable<T>
     {
-        var seedIndex = Random.Shared.Next(start, end);
-        (s[start], s[seedIndex]) = (s[seedIndex], s[start]);//swap
+        if (start >= end) return;
 
         var head = TraverseRange(s, start, end);
 
-        var tasks = new[] { Task.CompletedTask, Task.CompletedTask };
-        if (!HasConverged(s, start, head)) tasks[0] = SortRecursively<T>(s, start, head);
-        if (!HasConverged(s, head, end)) tasks[1] = SortRecursively<T>(s, head, end);
-        return Task.WhenAll(tasks);
+        if (availableThreads > 0)
+        {
+            Parallel.Invoke
+            ([
+                () => { SortRecursively<T>(s, start, head, availableThreads - 1); },
+                () => { SortRecursively<T>(s, head+1, end, availableThreads - 1); }
+            ]);
+        }
+        else
+        {
+            SortRecursively<T>(s, start, head, availableThreads - 1);
+            SortRecursively<T>(s, head + 1, end, availableThreads - 1);
+        }
     }
+
+    private static int CalculateCapacity<T>(T[] s)
+        => (int)(
+            2 * s.Length //*2 as we go over the collection 2 times on each iteration
+              * Math.Log2(s.Length) //on each iteration we split the sequence in 2
+            + 1); //+1 for Ceiling, not precise but good enough
 
     private static int TraverseRange<T>(T[] s, int start, int end) where T : IComparable<T>
     {
-        int head = start, tail = end - 1;
+        //var seedIndex = Random.Shared.Next(start, end);
+        var middle = (start + end) / 2;
+        //(s[middle], s[seedIndex]) = (s[seedIndex], s[middle]);//swap
+
+        int head = start - 1, tail = end + 1;
         while (head < tail)
         {
-            var comparisonResult = s[head].CompareTo(s[head + 1]);
 
-            if (comparisonResult > 0)
-            {
-                (s[head], s[head + 1]) = (s[head + 1], s[head]);
-                head++;
-            }
-            else
-            {
-                (s[tail], s[head + 1]) = (s[head + 1], s[tail]);
-                tail--;
-            }
+            do { head++; } while (s[head].CompareTo(s[middle]) < 0);
+
+            do { tail--; } while (s[tail].CompareTo(s[middle]) > 0);
+
+            if (head >= tail) return tail;
+
+            (s[tail], s[head]) = (s[head], s[tail]);
         }
 
         return head;
