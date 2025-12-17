@@ -26,7 +26,7 @@ internal static class QuickSorter001
     public static IList<T> SortParallel<T>(IList<T> source) where T : IComparable<T>
     {
         var s = source.ToArray();
-        SortRecursively(s, 0, s.Length - 1, Environment.ProcessorCount);
+        SortRecursively(s, 0, s.Length - 1, Environment.ProcessorCount - 1);
         return s;
     }
 
@@ -60,17 +60,18 @@ internal static class QuickSorter001
 
     private static int TraverseRange<T>(T[] s, int start, int end) where T : IComparable<T>
     {
-        //var seedIndex = Random.Shared.Next(start, end);
+        var seedIndex = Random.Shared.Next(start, end);
         var middle = (start + end) / 2;
-        //(s[middle], s[seedIndex]) = (s[seedIndex], s[middle]);//swap
+        (s[middle], s[seedIndex]) = (s[seedIndex], s[middle]);//swap
+        var pivot = s[middle];
 
         int head = start - 1, tail = end + 1;
         while (head < tail)
         {
 
-            do { head++; } while (s[head].CompareTo(s[middle]) < 0);
+            do { head++; } while (s[head].CompareTo(pivot) < 0);
 
-            do { tail--; } while (s[tail].CompareTo(s[middle]) > 0);
+            do { tail--; } while (s[tail].CompareTo(pivot) > 0);
 
             if (head >= tail) return tail;
 
