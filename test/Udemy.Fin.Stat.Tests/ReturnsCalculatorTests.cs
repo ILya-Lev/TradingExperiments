@@ -1,7 +1,6 @@
-﻿using Xunit.Abstractions;
+﻿namespace Udemy.Fin.Stat.Tests;
 
-namespace Udemy.Fin.Stat.Tests;
-
+[Trait("Category", "Unit")]
 public class ReturnsCalculatorTests(ITestOutputHelper output)
 {
     [Fact]
