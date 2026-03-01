@@ -20,7 +20,7 @@ public class DataLoaderDemos(ITestOutputHelper output)
     public async Task Load_EurUsd_Observe()
     {
         var path = Path.Combine(Directory.GetCurrentDirectory(), "TestData", "EURUSD.csv");
-        var rates = await DataLoader.Load<FxRate>(path).ToArrayAsync();
+        var rates = await DataLoader.LoadCsv<FxRate>(path).ToArrayAsync();
 
         output.WriteLine(
             $"have loaded {rates.Length} rates" +
@@ -35,7 +35,7 @@ public class DataLoaderDemos(ITestOutputHelper output)
     public async Task Load_SnP500_Observe()
     {
         var path = Path.Combine(Directory.GetCurrentDirectory(), "TestData", "GSPC.csv");
-        var index = await DataLoader.Load<ExIndex>(path).ToArrayAsync();
+        var index = await DataLoader.LoadCsv<ExIndex>(path).ToArrayAsync();
 
         output.WriteLine(
             $"have loaded {index.Length} S&P500 indexes" +
@@ -49,7 +49,7 @@ public class DataLoaderDemos(ITestOutputHelper output)
     public async Task Load_Russel2000_Observe()
     {
         var path = Path.Combine(Directory.GetCurrentDirectory(), "TestData", "RUT.csv");
-        var index = await DataLoader.Load<ExIndex>(path).ToArrayAsync();
+        var index = await DataLoader.LoadCsv<ExIndex>(path).ToArrayAsync();
 
         output.WriteLine(
             $"have loaded {index.Length} Russel 2000 indexes" +
@@ -63,7 +63,7 @@ public class DataLoaderDemos(ITestOutputHelper output)
     public async Task Load_Eurostoxx50_Observe()
     {
         var path = Path.Combine(Directory.GetCurrentDirectory(), "TestData", "SX5E.csv");
-        var index = await DataLoader.Load<ExOhlc>(path).ToArrayAsync();
+        var index = await DataLoader.LoadCsv<ExOhlc>(path).ToArrayAsync();
 
         output.WriteLine(
             $"have loaded {index.Length} Eurostoxx 50 indexes" +

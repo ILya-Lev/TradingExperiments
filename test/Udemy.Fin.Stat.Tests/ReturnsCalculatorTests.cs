@@ -49,7 +49,7 @@ public class ReturnsCalculatorTests(ITestOutputHelper output)
     public async Task SnP500_ContinuouslyCompounded_DailyNetReturns_Plot()
     {
         var path = Path.Combine(Directory.GetCurrentDirectory(), "TestData", "GSPC.csv");
-        var index = await DataLoader.Load<ExIndex>(path).ToArrayAsync();
+        var index = await DataLoader.LoadCsv<ExIndex>(path).ToArrayAsync();
 
         var closeContinuousReturns = CalculateContinuouslyCompoundedDailyReturns(index.Select(i => i.Close));
         var closeDailyNetReturns = CalculateDailyNetReturns(index.Select(i => i.Close));
@@ -89,7 +89,7 @@ public class ReturnsCalculatorTests(ITestOutputHelper output)
     public async Task Russell2000_ContinuouslyCompounded_DailyNetReturns_Plot()
     {
         var path = Path.Combine(Directory.GetCurrentDirectory(), "TestData", "RUT.csv");
-        var index = await DataLoader.Load<ExIndex>(path).ToArrayAsync();
+        var index = await DataLoader.LoadCsv<ExIndex>(path).ToArrayAsync();
 
         var closeContinuousReturns = CalculateContinuouslyCompoundedDailyReturns(index.Select(i => i.Close));
         var closeDailyNetReturns = CalculateDailyNetReturns(index.Select(i => i.Close));
@@ -128,7 +128,7 @@ public class ReturnsCalculatorTests(ITestOutputHelper output)
     public async Task EuroStoxx50_ContinuouslyCompounded_DailyNetReturns_Plot()
     {
         var path = Path.Combine(Directory.GetCurrentDirectory(), "TestData", "SX5E.csv");
-        var index = await DataLoader.Load<ExOhlc>(path).ToArrayAsync();
+        var index = await DataLoader.LoadCsv<ExOhlc>(path).ToArrayAsync();
 
         var closeContinuousReturns = CalculateContinuouslyCompoundedDailyReturns(index.Select(i => i.Close));
         var closeDailyNetReturns = CalculateDailyNetReturns(index.Select(i => i.Close));

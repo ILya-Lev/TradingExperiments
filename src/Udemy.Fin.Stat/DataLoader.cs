@@ -8,7 +8,7 @@ namespace Udemy.Fin.Stat;
 
 public static class DataLoader
 {
-    public static async IAsyncEnumerable<T> Load<T>
+    public static async IAsyncEnumerable<T> LoadCsv<T>
     (
         string path,
         [EnumeratorCancellation] CancellationToken ct = default
@@ -41,6 +41,25 @@ public static class DataLoader
 
         await foreach(var record in csv.GetRecordsAsync<T>(ct))
             yield return record;
+    }
+
+    public static Task DumpCsv<T>(IEnumerable<T> data, string path)
+    {
+        throw new NotImplementedException();
+    }
+
+    public static IAsyncEnumerable<T> LoadParquet<T>
+    (
+        string path,
+        CancellationToken ct = default
+    )
+    {
+        throw new NotImplementedException();
+    }
+
+    public static Task DumpParquet<T>(IEnumerable<T> data, string path)
+    {
+        throw new NotImplementedException();
     }
 }
 
