@@ -85,6 +85,85 @@ public class ReturnsCalculatorTests(ITestOutputHelper output)
         await Task.WhenAll(savingTasks);
     }
 
+    [Fact]
+    public async Task Russell2000_ContinuouslyCompounded_DailyNetReturns_Plot()
+    {
+        var path = Path.Combine(Directory.GetCurrentDirectory(), "TestData", "RUT.csv");
+        var index = await DataLoader.Load<ExIndex>(path).ToArrayAsync();
+
+        var closeContinuousReturns = CalculateContinuouslyCompoundedDailyReturns(index.Select(i => i.Close));
+        var closeDailyNetReturns = CalculateDailyNetReturns(index.Select(i => i.Close));
+        var closeDailyGrossReturns = CalculateDailyGrossReturns(index.Select(i => i.Close));
+
+        var data = index
+            .Skip(1)
+            .Zip(closeDailyGrossReturns, (i, g) => new PricesWithReturns(i.Date, i.Close, g.ToBp(), 0, 0))
+            .ToArray();
+
+        data = data.Zip(closeDailyNetReturns, (d, n) => d with { DailyNet = n.ToBp() }).ToArray();
+        data = data.Zip(closeContinuousReturns, (d, c) => d with { ContinuouslyCompound = c.ToBp() }).ToArray();
+
+        foreach(var item in data.Take(10))
+        {
+            output.WriteLine($"{item.Date} {item.ContinuouslyCompound} bp {item.DailyNet} bp");
+        }
+
+        var savingTasks = new[]
+        {
+            Plot("Russell 2000 close prices.png", data, i => i.Price),
+            Plot("Russell 2000 continuous returns.png", data, i => i.ContinuouslyCompound),
+            Plot("Russell 2000 daily net returns.png", data, i => i.DailyNet),
+            Plot("Russell 2000 continuous returns the 90th.png", data, i => i.ContinuouslyCompound,
+                d => d.Year is >= 1990 and < 2000),
+            Plot("Russell 2000 continuous returns dot com.png", data, i => i.ContinuouslyCompound,
+                d => d.Year is >= 2000 and < 2002),
+            Plot("Russell 2000 continuous returns the 2001-2007.png", data, i => i.ContinuouslyCompound,
+                d => d.Year is >= 2002 and < 2008),
+            Plot("Russell 2000 continuous returns big crisis 2008.png", data, i => i.ContinuouslyCompound,
+                d => d.Year is >= 2008 and < 2010),
+        };
+        await Task.WhenAll(savingTasks);
+    }
+    [Fact]
+    public async Task EuroStoxx50_ContinuouslyCompounded_DailyNetReturns_Plot()
+    {
+        var path = Path.Combine(Directory.GetCurrentDirectory(), "TestData", "SX5E.csv");
+        var index = await DataLoader.Load<ExOhlc>(path).ToArrayAsync();
+
+        var closeContinuousReturns = CalculateContinuouslyCompoundedDailyReturns(index.Select(i => i.Close));
+        var closeDailyNetReturns = CalculateDailyNetReturns(index.Select(i => i.Close));
+        var closeDailyGrossReturns = CalculateDailyGrossReturns(index.Select(i => i.Close));
+
+        var data = index
+            .Skip(1)
+            .Zip(closeDailyGrossReturns, (i, g) => new PricesWithReturns(i.Date, i.Close, g.ToBp(), 0, 0))
+            .ToArray();
+
+        data = data.Zip(closeDailyNetReturns, (d, n) => d with { DailyNet = n.ToBp() }).ToArray();
+        data = data.Zip(closeContinuousReturns, (d, c) => d with { ContinuouslyCompound = c.ToBp() }).ToArray();
+
+        foreach(var item in data.Take(10))
+        {
+            output.WriteLine($"{item.Date} {item.ContinuouslyCompound} bp {item.DailyNet} bp");
+        }
+
+        var savingTasks = new[]
+        {
+            Plot("EuroStoxx50 close prices.png", data, i => i.Price),
+            Plot("EuroStoxx50 continuous returns.png", data, i => i.ContinuouslyCompound),
+            Plot("EuroStoxx50 daily net returns.png", data, i => i.DailyNet),
+            Plot("EuroStoxx50 continuous returns the 90th.png", data, i => i.ContinuouslyCompound,
+                d => d.Year is >= 1990 and < 2000),
+            Plot("EuroStoxx50 continuous returns dot com.png", data, i => i.ContinuouslyCompound,
+                d => d.Year is >= 2000 and < 2002),
+            Plot("EuroStoxx50 continuous returns the 2001-2007.png", data, i => i.ContinuouslyCompound,
+                d => d.Year is >= 2002 and < 2008),
+            Plot("EuroStoxx50 continuous returns big crisis 2008.png", data, i => i.ContinuouslyCompound,
+                d => d.Year is >= 2008 and < 2010),
+        };
+        await Task.WhenAll(savingTasks);
+    }
+
     private static async Task Plot(string name,
         PricesWithReturns[] data,
         Func<PricesWithReturns, decimal> projection, 
