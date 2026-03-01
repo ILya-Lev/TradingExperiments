@@ -17,3 +17,11 @@ public readonly record struct ExOhlc(
     decimal High,
     decimal Low,
     decimal Close);
+
+public readonly record struct PricesWithReturns(
+    DateOnly Date,
+    decimal Price,
+    decimal DailyGross,
+    decimal DailyNet,
+    decimal ContinuouslyCompound);
+

@@ -15,7 +15,7 @@ public static class ReturnsCalculator
                 continue;
             }
 
-            yield return DivideZeroGuarded(iterator.Current, previous.Value);
+            yield return iterator.Current.DivideZeroGuarded(previous.Value);
             previous = iterator.Current;
         }
     }
@@ -53,7 +53,7 @@ public static class ReturnsCalculator
         {
             if (index >= aggregationWindow)
             {
-                yield return DivideZeroGuarded(iterator.Current, buffer[index % aggregationWindow]);
+                yield return iterator.Current.DivideZeroGuarded(buffer[index % aggregationWindow]);
             }
 
             buffer[index % aggregationWindow] = iterator.Current;
@@ -93,13 +93,5 @@ public static class ReturnsCalculator
         {
             yield return windowSum;
         }
-    }
-
-    private static decimal DivideZeroGuarded(decimal nominator, decimal denominator)
-    {
-        if (Math.Abs(denominator) < 1e-10m)
-            throw new InvalidOperationException($"current value {nominator}, previous {denominator}");
-        
-        return nominator / denominator;
     }
 }
