@@ -1,4 +1,5 @@
-﻿using MathNet.Numerics.Statistics;
+﻿using FluentAssertions;
+using MathNet.Numerics.Statistics;
 
 namespace Udemy.Fin.Stat.Tests;
 
@@ -45,6 +46,7 @@ public class DataLoaderDemos(ITestOutputHelper output)
         var closeStat = new DescriptiveStatistics(index.Select(r => (double)r.Close));
         PrintStatReport(closeStat);
     }
+
     [Fact]
     public async Task Load_Russel2000_Observe()
     {
@@ -59,6 +61,7 @@ public class DataLoaderDemos(ITestOutputHelper output)
         var closeStat = new DescriptiveStatistics(index.Select(r => (double)r.Close));
         PrintStatReport(closeStat);
     }
+
     [Fact]
     public async Task Load_Eurostoxx50_Observe()
     {
@@ -72,6 +75,58 @@ public class DataLoaderDemos(ITestOutputHelper output)
 
         var closeStat = new DescriptiveStatistics(index.Select(r => (double)r.Close));
         PrintStatReport(closeStat);
+    }
+    
+    [Fact]
+    public async Task Eurostoxx50_LoadCsv_WriteParquet_LoadParquet_MatchItself()
+    {
+        var pathCsv = Path.Combine(Directory.GetCurrentDirectory(), "TestData", "SX5E.csv");
+        var pathParquet = Path.Combine(Directory.GetCurrentDirectory(), "TestData", "SX5E.parquet");
+        
+        var index = await DataLoader.LoadCsv<ExOhlc>(pathCsv).ToArrayAsync();
+        await DataLoader.DumpParquet(index, pathParquet);
+        var readIndex = await DataLoader.LoadParquet<ExOhlc>(pathParquet).ToArrayAsync();
+
+        index.Should().BeEquivalentTo(readIndex);
+    }
+
+    [Fact]
+    public async Task Russell2000_LoadCsv_WriteParquet_LoadParquet_MatchItself()
+    {
+        var pathCsv = Path.Combine(Directory.GetCurrentDirectory(), "TestData", "RUT.csv");
+        var pathParquet = Path.Combine(Directory.GetCurrentDirectory(), "TestData", "RUT.parquet");
+        
+        var index = await DataLoader.LoadCsv<ExIndex>(pathCsv).ToArrayAsync();
+        await DataLoader.DumpParquet(index, pathParquet);
+        var readIndex = await DataLoader.LoadParquet<ExIndex>(pathParquet).ToArrayAsync();
+
+        index.Should().BeEquivalentTo(readIndex);
+    }
+
+    [Fact]
+    public async Task SnP500_LoadCsv_WriteParquet_LoadParquet_MatchItself()
+    {
+        var pathCsv = Path.Combine(Directory.GetCurrentDirectory(), "TestData", "GSPC.csv");
+        var pathParquet = Path.Combine(Directory.GetCurrentDirectory(), "TestData", "GSPC.parquet");
+        
+        var index = await DataLoader.LoadCsv<ExIndex>(pathCsv).ToArrayAsync();
+        await DataLoader.DumpParquet(index, pathParquet);
+        var readIndex = await DataLoader.LoadParquet<ExIndex>(pathParquet).ToArrayAsync();
+
+        index.Should().BeEquivalentTo(readIndex);
+    }
+
+    [Fact]
+    public async Task EurUsd_LoadCsv_WriteParquet_LoadParquet_MatchItself()
+    {
+        var pathCsv = Path.Combine(Directory.GetCurrentDirectory(), "TestData", "EurUsd.csv");
+        var pathParquet = Path.Combine(Directory.GetCurrentDirectory(), "TestData", "EurUsd.parquet");
+        
+        var index = await DataLoader.LoadCsv<FxRate>(pathCsv).ToArrayAsync();
+        await DataLoader.DumpParquet(index, pathParquet);
+        var readIndex = await DataLoader.LoadParquet<FxRate>(pathParquet).ToArrayAsync();
+
+        index.Should().BeEquivalentTo(readIndex);
     }
 }
 

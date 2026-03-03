@@ -1,22 +1,30 @@
 ﻿namespace Udemy.Fin.Stat;
 
-public readonly record struct FxRate(DateOnly Date, decimal Rate);
+public record FxRate
+{
+    public DateOnly Date { get; init; }
+    public decimal Rate { get; init; }
+}
 
-public readonly record struct ExIndex(
-    DateOnly Date,
-    decimal Open,
-    decimal High,
-    decimal Low,
-    decimal Close,
-    decimal AdjClose,
-    decimal Volume);
+public record ExIndex
+{
+    public DateOnly Date { get; init; }
+    public decimal Open { get; init; }
+    public decimal High { get; init; }
+    public decimal Low { get; init; }
+    public decimal Close { get; init; }
+    public decimal AdjClose { get; init; }
+    public decimal Volume { get; init; }
+}
 
-public readonly record struct ExOhlc(
-    DateOnly Date,
-    decimal Open,
-    decimal High,
-    decimal Low,
-    decimal Close);
+public record ExOhlc
+{
+    public DateOnly Date { get; init; }
+    public decimal Open { get; init; }
+    public decimal High { get; init; }
+    public decimal Low { get; init; }
+    public decimal Close { get; init; }
+}
 
 public readonly record struct PricesWithReturns(
     DateOnly Date,
