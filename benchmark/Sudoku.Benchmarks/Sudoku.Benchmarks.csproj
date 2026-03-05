@@ -16,6 +16,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Sudoku\Sudoku.csproj" />
     <ProjectReference Include="..\..\src\TDF.Lib\TDF.Lib.csproj" />
+    <ProjectReference Include="..\..\src\Udemy.Fin.Stat\Udemy.Fin.Stat.csproj" />
   </ItemGroup>
 
 </Project>

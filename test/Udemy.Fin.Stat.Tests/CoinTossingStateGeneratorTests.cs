@@ -65,4 +65,16 @@ public class CoinTossingStateGeneratorTests(ITestOutputHelper output)
             $" p(2 & 4 heads) = {probability2n4Heads};"
         );
     }
+
+    [Fact]
+    public void GenerateFairCoinTossesRecursive_25_LetItRun()
+    {
+        GenerateFairCoinTossesRecursive(25).Should().NotBeEmpty();
+    }
+
+    [Fact]
+    public void GenerateFairCoinTossesPreallocated_25_LetItRun()
+    {
+        GenerateFairCoinTosses(25).Should().NotBeEmpty();
+    }
 }

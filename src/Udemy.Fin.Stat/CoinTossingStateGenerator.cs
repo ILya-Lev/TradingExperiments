@@ -15,6 +15,30 @@ public static partial class CoinTossingStateGenerator
 
     public static IEnumerable<string> GenerateFairCoinTosses(int counter = 1)
     {
+        var allStates = new string[1 << counter];
+        allStates[0] = $"{Heads}";
+        allStates[1] = $"{Tails}";
+
+        for (int tossingNumber = 1; tossingNumber < counter; tossingNumber++)
+        {
+            var position = 1 << tossingNumber;
+            PopulateFairCoinTosses(allStates, position);
+        }
+
+        return allStates;
+    }
+
+    private static void PopulateFairCoinTosses(string[] states, int position)
+    {
+        for (int i = 0; i < position; i++)
+        {
+            states[position + i] = $"{states[i]}{Tails}";
+            states[i] += Heads;
+        }
+    }
+
+    public static IEnumerable<string> GenerateFairCoinTossesRecursive(int counter = 1)
+    {
         if (counter <= 1) return [$"{Heads}", $"{Tails}"];
 
         var previous = GenerateFairCoinTosses(counter - 1).ToArray();
@@ -24,6 +48,7 @@ public static partial class CoinTossingStateGenerator
             ..previous.Select(state => $"{state}{Tails}")
         ];
     }
+
 
     public static IEnumerable<string> GenerateBiasedCoinTosses(int counter = 1, double pHead = 0.5)
     {
