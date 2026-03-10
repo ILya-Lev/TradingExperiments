@@ -33,7 +33,7 @@ public class DiscreteFlippingProbabilityCalculatorTests(ITestOutputHelper output
             Enumerable.Range(0, flips + 1)
             .ToDictionary
             (
-                c => c,
+                c => (double)c,
                 c => DiscreteFlippingProbabilityCalculator.GetOccurrencesProbability(flips, c, 0.65)
             );
 
@@ -43,6 +43,7 @@ public class DiscreteFlippingProbabilityCalculatorTests(ITestOutputHelper output
         }
 
         await Plot("biased 65p heads coin 4 times.png", distribution.Values.ToArray());
+        await Plot("cdf biased 65p heads coin 4 times.png", distribution.ConvertDistributionIntoCdf().Values.ToArray());
     }
 
     [Fact]
@@ -54,7 +55,7 @@ public class DiscreteFlippingProbabilityCalculatorTests(ITestOutputHelper output
             Enumerable.Range(0, flips + 1)
             .ToDictionary
             (
-                c => c,
+                c => (double)c,
                 c => DiscreteFlippingProbabilityCalculator.GetOccurrencesProbability(flips, c, 0.65)
             );
 
@@ -64,6 +65,7 @@ public class DiscreteFlippingProbabilityCalculatorTests(ITestOutputHelper output
         }
 
         await Plot("biased 65p heads coin 100 times.png", distribution.Values.ToArray());
+        await Plot("cdf biased 65p heads coin 100 times.png", distribution.ConvertDistributionIntoCdf().Values.ToArray());
     }
 
     private static async Task Plot<T>(string name, T[] data)
