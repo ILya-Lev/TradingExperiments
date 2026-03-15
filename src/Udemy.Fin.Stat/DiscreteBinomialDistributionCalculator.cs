@@ -1,6 +1,6 @@
 ﻿namespace Udemy.Fin.Stat;
 
-public static class DiscreteFlippingProbabilityCalculator
+public static class DiscreteBinomialDistributionCalculator
 {
     /// <summary> cdf stands for cumulative distribution function </summary>
     public static IReadOnlyDictionary<double, double> ConvertDistributionIntoCdf(
@@ -10,10 +10,14 @@ public static class DiscreteFlippingProbabilityCalculator
         return distribution.ToDictionary(p => p.Key, p => total += p.Value);
     }
 
-    public static double GetOccurrencesProbability(int flips, int occurrences, double headsProbability = 0.5) =>
-        flips.GetCombinationsNumber(occurrences)
-        * Math.Pow(headsProbability, occurrences)
-        * Math.Pow(1 - headsProbability, flips - occurrences);
+    public static double GetUpToProbability(int sampleSize, int occurrences, double success = 0.5) =>
+        Enumerable.Range(0, occurrences+1)
+            .Sum(oc => GetOccurrencesProbability(sampleSize, oc, success));
+    
+    public static double GetOccurrencesProbability(int sampleSize, int occurrences, double success = 0.5) =>
+        sampleSize.GetCombinationsNumber(occurrences)
+        * Math.Pow(success, occurrences)
+        * Math.Pow(1 - success, sampleSize - occurrences);
 
     /// <summary>
     /// aka binomial coefficient = n!/k!/(n-k)!

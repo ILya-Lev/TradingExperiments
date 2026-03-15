@@ -1,7 +1,9 @@
-﻿namespace Udemy.Fin.Stat.Tests;
+﻿using FluentAssertions;
+
+namespace Udemy.Fin.Stat.Tests;
 
 [Trait("Category", "Unit")]
-public class DiscreteFlippingProbabilityCalculatorTests(ITestOutputHelper output)
+public class DiscreteBinomialDistributionCalculatorTests(ITestOutputHelper output)
 {
     [Fact]
     public async Task GetOccurrencesProbability_FairFourTosses_PlotDistribution()
@@ -13,7 +15,7 @@ public class DiscreteFlippingProbabilityCalculatorTests(ITestOutputHelper output
             .ToDictionary
             (
                 c => c,
-                c => DiscreteFlippingProbabilityCalculator.GetOccurrencesProbability(flips, c)
+                c => DiscreteBinomialDistributionCalculator.GetOccurrencesProbability(flips, c)
             );
 
         foreach (var (times, p) in distribution)
@@ -34,7 +36,7 @@ public class DiscreteFlippingProbabilityCalculatorTests(ITestOutputHelper output
             .ToDictionary
             (
                 c => (double)c,
-                c => DiscreteFlippingProbabilityCalculator.GetOccurrencesProbability(flips, c, 0.65)
+                c => DiscreteBinomialDistributionCalculator.GetOccurrencesProbability(flips, c, 0.65)
             );
 
         foreach (var (times, p) in distribution)
@@ -56,7 +58,7 @@ public class DiscreteFlippingProbabilityCalculatorTests(ITestOutputHelper output
             .ToDictionary
             (
                 c => (double)c,
-                c => DiscreteFlippingProbabilityCalculator.GetOccurrencesProbability(flips, c, 0.65)
+                c => DiscreteBinomialDistributionCalculator.GetOccurrencesProbability(flips, c, 0.65)
             );
 
         foreach (var (times, p) in distribution)
@@ -66,6 +68,15 @@ public class DiscreteFlippingProbabilityCalculatorTests(ITestOutputHelper output
 
         await Plot("biased 65p heads coin 100 times.png", distribution.Values.ToArray());
         await Plot("cdf biased 65p heads coin 100 times.png", distribution.ConvertDistributionIntoCdf().Values.ToArray());
+    }
+
+    [Fact]
+    public void GetUpToProbability_Bin10p30_UpTo3_Observe()
+    {
+        var probabilityOfSuccessUpTo3Times = DiscreteBinomialDistributionCalculator
+            .GetUpToProbability(10, 3, 0.3);
+
+        probabilityOfSuccessUpTo3Times.Should().BeApproximately(.6496, 1e-4);
     }
 
     private static async Task Plot<T>(string name, T[] data)
