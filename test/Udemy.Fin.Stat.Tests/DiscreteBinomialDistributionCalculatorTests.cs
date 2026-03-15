@@ -1,4 +1,5 @@
 ﻿using FluentAssertions;
+using static Udemy.Fin.Stat.DiscreteBinomialDistributionCalculator;
 
 namespace Udemy.Fin.Stat.Tests;
 
@@ -15,7 +16,7 @@ public class DiscreteBinomialDistributionCalculatorTests(ITestOutputHelper outpu
             .ToDictionary
             (
                 c => c,
-                c => DiscreteBinomialDistributionCalculator.GetOccurrencesProbability(flips, c)
+                c => GetOccurrencesProbability(flips, c)
             );
 
         foreach (var (times, p) in distribution)
@@ -36,7 +37,7 @@ public class DiscreteBinomialDistributionCalculatorTests(ITestOutputHelper outpu
             .ToDictionary
             (
                 c => (double)c,
-                c => DiscreteBinomialDistributionCalculator.GetOccurrencesProbability(flips, c, 0.65)
+                c => GetOccurrencesProbability(flips, c, 0.65)
             );
 
         foreach (var (times, p) in distribution)
@@ -58,7 +59,7 @@ public class DiscreteBinomialDistributionCalculatorTests(ITestOutputHelper outpu
             .ToDictionary
             (
                 c => (double)c,
-                c => DiscreteBinomialDistributionCalculator.GetOccurrencesProbability(flips, c, 0.65)
+                c => GetOccurrencesProbability(flips, c, 0.65)
             );
 
         foreach (var (times, p) in distribution)
@@ -73,10 +74,49 @@ public class DiscreteBinomialDistributionCalculatorTests(ITestOutputHelper outpu
     [Fact]
     public void GetUpToProbability_Bin10p30_UpTo3_Observe()
     {
-        var probabilityOfSuccessUpTo3Times = DiscreteBinomialDistributionCalculator
-            .GetUpToProbability(10, 3, 0.3);
+        var probabilityOfSuccessUpTo3Times = GetUpToProbability(10, 3, 0.3);
 
         probabilityOfSuccessUpTo3Times.Should().BeApproximately(.6496, 1e-4);
+    }
+
+    [Fact]
+    public void GetUpToProbability_Bin10p10_UpTo2_Observe()
+    {
+        var probabilityOfSuccessUpTo3Times = GetUpToProbability(10, 2, 0.1);
+
+        probabilityOfSuccessUpTo3Times.Should().BeApproximately(.9298, 1e-4);
+    }
+
+    [Fact]
+    public void GetUpToProbability_Bin10p0094_UpTo1_Observe()
+    {
+        var probabilityOfSuccessUpTo3Times = GetUpToProbability(10, 1, 0.022568);
+
+        probabilityOfSuccessUpTo3Times.Should().BeApproximately(.9796, 1e-4);
+    }
+
+    [Fact]
+    public void GetUpToProbability_Bin50p04_UpTo2_Observe()
+    {
+        var upToTwiceBySampleSize = Enumerable.Range(1,5)
+            .Select(multiplier => 50*multiplier)
+            .Select(sampleSize => (sampleSize, p: GetUpToProbability(sampleSize, 2, 0.04)))
+            .ToArray();
+        
+        var upToOnceBySampleSize = Enumerable.Range(1,5)
+            .Select(multiplier => 50*multiplier)
+            .Select(sampleSize => (sampleSize, p: GetUpToProbability(sampleSize, 1, 0.04)))
+            .ToArray();
+
+        upToTwiceBySampleSize.Single(item => item.sampleSize == 50).p.Should().BeApproximately(.6767, 1e-4);
+        
+        output.WriteLine($"up to 2 occurrences");
+        foreach (var (sampleSize, p) in upToTwiceBySampleSize)
+            output.WriteLine($"{sampleSize} -> {p:P2}");
+
+        output.WriteLine($"up to 1 occurrences");
+        foreach (var (sampleSize, p) in upToOnceBySampleSize)
+            output.WriteLine($"{sampleSize} -> {p:P2}");
     }
 
     private static async Task Plot<T>(string name, T[] data)
