@@ -1,5 +1,4 @@
-﻿using MathNet.Numerics.LinearAlgebra.Factorization;
-using ScottPlot;
+﻿using ScottPlot;
 using System.Globalization;
 
 namespace Udemy.Fin.Stat.Tests;
@@ -135,6 +134,7 @@ public class ProblemSet071(ITestOutputHelper output)
                 continue;
 
             yield return (iterator.Current.Key, 100 * Math.Log(ratio));
+            previous = iterator.Current;
         }
     }
 
@@ -151,6 +151,7 @@ public class ProblemSet071(ITestOutputHelper output)
                 continue;
 
             yield return (iterator.Current.Key, 100 * netReturn);
+            previous = iterator.Current;
         }
     }
 
