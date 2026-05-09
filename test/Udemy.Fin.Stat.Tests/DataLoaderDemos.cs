@@ -1,4 +1,5 @@
-﻿using FluentAssertions;
+﻿#pragma warning disable xUnit1051
+using FluentAssertions;
 using MathNet.Numerics.Statistics;
 
 namespace Udemy.Fin.Stat.Tests;
@@ -85,7 +86,7 @@ public class DataLoaderDemos(ITestOutputHelper output)
         
         var index = await DataLoader.LoadCsv<ExOhlc>(pathCsv).ToArrayAsync();
         await DataLoader.DumpParquet(index, pathParquet);
-        var readIndex = await DataLoader.LoadParquet<ExOhlc>(pathParquet).ToArrayAsync();
+        var readIndex = await DataLoader.LoadParquet<ExOhlc>(pathParquet).ContinueWith(t => t.Result.ToArray());
 
         index.Should().BeEquivalentTo(readIndex);
     }
@@ -98,7 +99,7 @@ public class DataLoaderDemos(ITestOutputHelper output)
         
         var index = await DataLoader.LoadCsv<ExIndex>(pathCsv).ToArrayAsync();
         await DataLoader.DumpParquet(index, pathParquet);
-        var readIndex = await DataLoader.LoadParquet<ExIndex>(pathParquet).ToArrayAsync();
+        var readIndex = await DataLoader.LoadParquet<ExIndex>(pathParquet).ContinueWith(t => t.Result.ToArray());
 
         index.Should().BeEquivalentTo(readIndex);
     }
@@ -111,7 +112,7 @@ public class DataLoaderDemos(ITestOutputHelper output)
         
         var index = await DataLoader.LoadCsv<ExIndex>(pathCsv).ToArrayAsync();
         await DataLoader.DumpParquet(index, pathParquet);
-        var readIndex = await DataLoader.LoadParquet<ExIndex>(pathParquet).ToArrayAsync();
+        var readIndex = await DataLoader.LoadParquet<ExIndex>(pathParquet).ContinueWith(t => t.Result.ToArray());
 
         index.Should().BeEquivalentTo(readIndex);
     }
@@ -124,7 +125,7 @@ public class DataLoaderDemos(ITestOutputHelper output)
         
         var index = await DataLoader.LoadCsv<FxRate>(pathCsv).ToArrayAsync();
         await DataLoader.DumpParquet(index, pathParquet);
-        var readIndex = await DataLoader.LoadParquet<FxRate>(pathParquet).ToArrayAsync();
+        var readIndex = await DataLoader.LoadParquet<FxRate>(pathParquet).ContinueWith(t => t.Result.ToArray());
 
         index.Should().BeEquivalentTo(readIndex);
     }

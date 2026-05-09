@@ -168,10 +168,10 @@ public class ReturnsCalculatorTests(ITestOutputHelper output)
     [Theory]
     [InlineData("GSPC")]
     [InlineData("RUT")]
-    public async Task Sharpe_ForIndexes_Plot(string fileName)
+    public async Task Sharpe_ForIndexes_Plot(string fileName, CancellationToken ct = default)
     {
         var path = Path.Combine(Directory.GetCurrentDirectory(), "TestData", $"{fileName}.parquet");
-        var index = await DataLoader.LoadParquet<ExIndex>(path).ToArrayAsync();
+        var index = await DataLoader.LoadParquet<ExIndex>(path, ct).ContinueWith(t => t.Result.ToArray(), ct);
 
         var yearlySharpe = SharpeCalculator.CalculateDailySharpe(index.Select(i => i.Close), 250);
         var quarterlySharpe = SharpeCalculator.CalculateDailySharpe(index.Select(i => i.Close), 62);

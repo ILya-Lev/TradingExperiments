@@ -32,18 +32,15 @@ public static class DataLoader
         Share = FileShare.Read,
     };
 
-    private static readonly ParquetSerializerOptions _parquetOptions = new ()
+    private static readonly ParquetOptions _parquetOptions = new()
     {
         CompressionLevel = CompressionLevel.SmallestSize,
         Append = false,
         CompressionMethod = CompressionMethod.Zstd,
         PropertyNameCaseInsensitive = true,
         RowGroupSize = 10_000,
-        ParquetOptions = new ParquetOptions()
-        {
-            UseDateOnlyTypeForDates = true,
-            UseBigDecimal = false,
-        }
+        UseDateOnlyTypeForDates = true,
+        UseBigDecimal = false,
     };
 
     private static readonly CsvConfiguration _csvConfiguration = new CsvConfiguration(CultureInfo.InvariantCulture)
@@ -65,7 +62,7 @@ public static class DataLoader
         using var textReader = new StreamReader(fileStream, Encoding.UTF8);
         using var csv = new CsvReader(textReader, _csvConfiguration, leaveOpen: false);
 
-        await foreach(var record in csv.GetRecordsAsync<T>(ct))
+        await foreach (var record in csv.GetRecordsAsync<T>(ct))
             yield return record;
     }
 
@@ -78,19 +75,19 @@ public static class DataLoader
         await csv.WriteRecordsAsync(data, ct);
     }
 
-    public static async IAsyncEnumerable<T> LoadParquet<T>(string path, [EnumeratorCancellation] CancellationToken ct = default) 
+    public static async Task<IEnumerable<T>> LoadParquet<T>(string path, CancellationToken ct = default)
         where T : class, new()
     {
         await using var fileStream = File.Open(path, _readingFileOptions);
 
-        await foreach (var record in ParquetSerializer.DeserializeAllAsync<T>(fileStream, _parquetOptions, ct))
-            yield return record;
+        var result = await ParquetSerializer.DeserializeAsync<T>(fileStream, _parquetOptions, null, ct);
+        return result.Data;
     }
 
     public static async Task DumpParquet<T>(IEnumerable<T> data, string path, CancellationToken ct = default)
     {
         await using var fileStream = File.Open(path, _writingFileOptions);
-        var schema = await ParquetSerializer.SerializeAsync(data, fileStream, _parquetOptions, ct);
+        var schema = await ParquetSerializer.SerializeAsync(data, fileStream, _parquetOptions, null, ct);
     }
 }
 
