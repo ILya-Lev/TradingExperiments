@@ -7,16 +7,27 @@ namespace Udemy.Fin.Stat.Tests;
 [Trait("Category", "Unit")]
 public class DataLoaderDemos(ITestOutputHelper output)
 {
-    private void PrintStatReport(DescriptiveStatistics stat) => output.WriteLine
-    (
-        $"\nmin {stat.Minimum}" +
-        $"\nmax {stat.Maximum}" +
-        $"\naverage {stat.Mean}" +
-        $"\nvariance {stat.Variance}" +
-        $"\nstandard deviation {stat.StandardDeviation}" +
-        $"\nkurtosis {stat.Kurtosis}" +
-        $"\nskewness {stat.Skewness}"
-    );
+    private void PrintStatReport(double[] data)
+    {
+        var stat = new DescriptiveStatistics(data);
+        
+        output.WriteLine
+        (
+            $"\nmin {stat.Minimum}" +
+            $"\nmax {stat.Maximum}" +
+            $"\naverage {stat.Mean}" +
+            $"\nvariance {stat.Variance}" +
+            $"\nstandard deviation {stat.StandardDeviation}" +
+            $"\nkurtosis {stat.Kurtosis}" +
+            $"\nskewness {stat.Skewness}" +
+            $"\nq1 {data.LowerQuartile()}" +
+            $"\nmedian {data.Median()}" +
+            $"\nq3 {data.UpperQuartile()}" +
+            $"\np90 {data.Quantile(.90)}" +
+            $"\np95 {data.Quantile(.95)}" +
+            $"\np99 {data.Quantile(.99)}" 
+        );
+    }
 
     [Fact]
     public async Task Load_EurUsd_Observe()
@@ -29,8 +40,8 @@ public class DataLoaderDemos(ITestOutputHelper output)
             $"\n from {rates.MinBy(r => r.Date)}" +
             $"\n to {rates.MaxBy(r => r.Date)}");
 
-        var stat = new DescriptiveStatistics(rates.Select(r => (double)r.Rate));
-        PrintStatReport(stat);
+        var data = rates.Select(r => (double)r.Rate).ToArray();
+        PrintStatReport(data);
     }
 
     [Fact]
@@ -44,8 +55,8 @@ public class DataLoaderDemos(ITestOutputHelper output)
             $"\n from {index.MinBy(r => r.Date)}" +
             $"\n to {index.MaxBy(r => r.Date)}");
 
-        var closeStat = new DescriptiveStatistics(index.Select(r => (double)r.Close));
-        PrintStatReport(closeStat);
+        var closePrices = index.Select(r => (double)r.Close).ToArray();
+        PrintStatReport(closePrices);
     }
 
     [Fact]
@@ -59,8 +70,8 @@ public class DataLoaderDemos(ITestOutputHelper output)
             $"\n from {index.MinBy(r => r.Date)}" +
             $"\n to {index.MaxBy(r => r.Date)}");
 
-        var closeStat = new DescriptiveStatistics(index.Select(r => (double)r.Close));
-        PrintStatReport(closeStat);
+        var closePrices = index.Select(r => (double)r.Close).ToArray();
+        PrintStatReport(closePrices);
     }
 
     [Fact]
@@ -74,8 +85,8 @@ public class DataLoaderDemos(ITestOutputHelper output)
             $"\n from {index.MinBy(r => r.Date)}" +
             $"\n to {index.MaxBy(r => r.Date)}");
 
-        var closeStat = new DescriptiveStatistics(index.Select(r => (double)r.Close));
-        PrintStatReport(closeStat);
+        var closePrices = index.Select(r => (double)r.Close).ToArray();
+        PrintStatReport(closePrices);
     }
     
     [Fact]
