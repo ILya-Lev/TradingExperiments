@@ -1,11 +1,12 @@
 ﻿namespace Udemy.Fin.Stat;
 
-public static class AlglibWhiteNoise
+public static class AlgLibWhiteNoise
 {
-    public static IEnumerable<double> Generate(double stdDev = 1.0)
+    public static IEnumerable<double> GenerateWhiteNoise(double stdDev = 1.0)
     {
         //seeds the generator with the current time/entropy. For determinism in testing use:
         //alglib.hqrndseed(1,2,out var state);
+        //hqrnd = high quality random
         alglib.hqrndrandomize(out var state);
 
         while(true)
@@ -13,5 +14,15 @@ public static class AlglibWhiteNoise
             yield return alglib.hqrndnormal(state) * stdDev;
         }
         // ReSharper disable once IteratorNeverReturns
+    }
+
+    public static IEnumerable<double> GenerateRandomWalk(IEnumerable<double> whiteNoise)
+    {
+        var current = 0.0;
+        foreach (var step in whiteNoise)
+        {
+            current += step;
+            yield return current;
+        }
     }
 }
