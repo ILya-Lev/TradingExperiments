@@ -2,7 +2,7 @@
 
 public static class AlgLibWhiteNoise
 {
-    public static IEnumerable<double> GenerateWhiteNoise(double stdDev = 1.0)
+    public static IEnumerable<double> GenerateWhiteNoise(double mean = 0, double stdDev = 1.0)
     {
         //seeds the generator with the current time/entropy. For determinism in testing use:
         //alglib.hqrndseed(1,2,out var state);
@@ -11,7 +11,7 @@ public static class AlgLibWhiteNoise
 
         while(true)
         {
-            yield return alglib.hqrndnormal(state) * stdDev;
+            yield return alglib.hqrndnormal(state) * stdDev + mean;
         }
         // ReSharper disable once IteratorNeverReturns
     }

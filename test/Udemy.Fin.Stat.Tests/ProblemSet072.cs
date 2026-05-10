@@ -9,7 +9,7 @@ public class ProblemSet072(ITestOutputHelper output)
     [Fact]
     public void WhiteNoise_Generate_Plot()
     {
-        var wn = AlgLibWhiteNoise.GenerateWhiteNoise(1.0).Take(1000).ToArray();
+        var wn = AlgLibWhiteNoise.GenerateWhiteNoise(stdDev: 1.0).Take(1000).ToArray();
         PlotSeries("white noise", "gaussian", wn);
         output.WriteLine($"generated {wn.Length} points of the white noise");
     }
@@ -17,7 +17,7 @@ public class ProblemSet072(ITestOutputHelper output)
     [Fact]
     public void Autocorrelation_ForWhiteNoise_Generate_Plot()
     {
-        var wn = AlgLibWhiteNoise.GenerateWhiteNoise(1.0).Take(1000).ToArray();
+        var wn = AlgLibWhiteNoise.GenerateWhiteNoise(stdDev: 1.0).Take(1000).ToArray();
         var acfs = wn.GetAutoCorrelationSimd(100);
         var acf = wn.GetAutoCorrelation(100);
         var acfp = wn.GetAutoCorrelationParallel(100);
@@ -39,7 +39,7 @@ public class ProblemSet072(ITestOutputHelper output)
     [Fact]
     public void RandomWalk_Generate_Plot()
     {
-        var wn = AlgLibWhiteNoise.GenerateWhiteNoise(1.0).Take(1000).ToArray();
+        var wn = AlgLibWhiteNoise.GenerateWhiteNoise(stdDev: 1.0).Take(1000).ToArray();
         var rw = AlgLibWhiteNoise.GenerateRandomWalk(wn).Take(1000).ToArray();
         
         PlotSeries("random walk", "gaussian", rw);

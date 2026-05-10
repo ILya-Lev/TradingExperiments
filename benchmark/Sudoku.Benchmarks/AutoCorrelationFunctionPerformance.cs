@@ -21,7 +21,7 @@ public class AutoCorrelationFunctionPerformance
     [GlobalSetup]
     public void GenerateWhiteNoise()
     {
-        WhiteNoise = AlgLibWhiteNoise.GenerateWhiteNoise(1.0).Take(Size).ToArray();
+        WhiteNoise = AlgLibWhiteNoise.GenerateWhiteNoise(stdDev: 1.0).Take(Size).ToArray();
     }
 
     [Benchmark(Baseline = true)] public double[] GenerateInPlainLoop() => WhiteNoise.GetAutoCorrelation(Size/10);
