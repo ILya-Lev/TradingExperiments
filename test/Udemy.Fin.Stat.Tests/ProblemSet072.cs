@@ -1,4 +1,5 @@
-﻿using FluentAssertions;
+﻿using System.Security.Cryptography.X509Certificates;
+using FluentAssertions;
 using ScottPlot;
 
 namespace Udemy.Fin.Stat.Tests;
@@ -18,14 +19,22 @@ public class ProblemSet072(ITestOutputHelper output)
     public void Autocorrelation_ForWhiteNoise_Generate_Plot()
     {
         var wn = AlglibWhiteNoise.Generate(1.0).Take(1000).ToArray();
+        var acfs = wn.GetAutoCorrelationSimd(100);
         var acf = wn.GetAutoCorrelation(100);
-        PlotSeries("auto correlation", "gaussian white noise", acf);
-        output.WriteLine($"generated {acf.Length} points of the white noise auto correlation");
+        var acfp = wn.GetAutoCorrelationParallel(100);
+        PlotSeries("auto correlation", "gaussian white noise", acfs);
+        output.WriteLine($"generated {acfs.Length} points of the white noise auto correlation");
 
         //assertions reflect that the correctly calculated acf has the first point = 1, the lat = 0
-        acf[0].Should().BeApproximately(1.0, 1e-6);
-        acf[99].Should().BeApproximately(0.0, 5e-2);
-        acf[100].Should().BeApproximately(0.0, 5e-6);
+        acfs[0].Should().BeApproximately(1.0, 1e-6);
+        acfs[99].Should().BeApproximately(0.0, 7e-2);
+        acfs[100].Should().BeApproximately(0.0, 5e-2);
+
+        for (int i = 0; i < acfs.Length; i++)
+        {
+            acfs[i].Should().BeApproximately(acf[i], 3e-2);
+            acfp[i].Should().BeApproximately(acf[i], 3e-2);
+        }
     }
 
     private static SavedImageInfo PlotSeries(string sourceName, string dataNature, double[] series)

@@ -9,4 +9,5 @@ Console.WriteLine("Performance test suit");
 //BenchmarkRunner.Run<TdfAveragePerformance>();
 //BenchmarkRunner.Run<PolynomialCalculatorPerformance>();
 
-BenchmarkRunner.Run<CoinTossingStateGeneratorPerformance>();
+//BenchmarkRunner.Run<CoinTossingStateGeneratorPerformance>();
+BenchmarkRunner.Run<AutoCorrelationFunctionPerformance>();
