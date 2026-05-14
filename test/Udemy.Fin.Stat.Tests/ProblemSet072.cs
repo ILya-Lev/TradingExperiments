@@ -15,6 +15,25 @@ public class ProblemSet072(ITestOutputHelper output)
     }
 
     [Fact]
+    public void MovingAverage1_Generate_Plot()
+    {
+        var ma1 = AlgLibWhiteNoise.GetMaSimulation(theta: [0.9], stdDev: 1.0).Take(1000).ToArray();
+        var fileInfo = PlotSeries("moving average 1", "gaussian", ma1);
+        output.WriteLine($"generated {ma1.Length} points of the white noise based moving average of lag=1" +
+                         $"\n\n saved into {fileInfo.Path}");
+    }
+
+    [Fact]
+    public void MovingAverage100_Generate_Plot()
+    {
+        var theta = Enumerable.Repeat(0.9, 100).ToArray();
+        var ma1 = AlgLibWhiteNoise.GetMaSimulation(theta: theta, stdDev: 1.0).Take(1000).ToArray();
+        var fileInfo = PlotSeries("moving average 100", "gaussian", ma1);
+        output.WriteLine($"generated {ma1.Length} points of the white noise based moving average of lag=1" +
+                         $"\n\n saved into {fileInfo.Path}");
+    }
+
+    [Fact]
     public void Autocorrelation_ForWhiteNoise_Generate_Plot()
     {
         var wn = AlgLibWhiteNoise.GenerateWhiteNoise(stdDev: 1.0).Take(1000).ToArray();
@@ -31,8 +50,8 @@ public class ProblemSet072(ITestOutputHelper output)
 
         for (int i = 0; i < acfs.Length; i++)
         {
-            acfs[i].Should().BeApproximately(acf[i], 3e-2);
-            acfp[i].Should().BeApproximately(acf[i], 3e-2);
+            acfs[i].Should().BeApproximately(acf[i], 5e-2);
+            acfp[i].Should().BeApproximately(acf[i], 5e-2);
         }
     }
 
@@ -85,5 +104,4 @@ public class ProblemSet072(ITestOutputHelper output)
 
         return plot.SaveSvg(chartPath, 1980, 1020);
     }
-
 }

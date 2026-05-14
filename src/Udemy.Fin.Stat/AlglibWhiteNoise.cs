@@ -1,4 +1,7 @@
-﻿namespace Udemy.Fin.Stat;
+﻿using MathNet.Numerics.Distributions;
+using System.Numerics.Tensors;
+
+namespace Udemy.Fin.Stat;
 
 public static class AlgLibWhiteNoise
 {
@@ -24,5 +27,29 @@ public static class AlgLibWhiteNoise
             current += step;
             yield return current;
         }
+    }
+
+
+    public static IEnumerable<double> GetMaSimulation(double[] theta, double stdDev = 1.0)
+    {
+        var eps = new double[theta.Length];
+        var normalGenerator = new Normal(0.0, stdDev);
+        normalGenerator.Samples(eps);
+
+        while (true)
+        {
+            var currentEps = normalGenerator.Sample();
+
+            yield return currentEps + ScalarProduct();
+
+            eps.AsSpan(0, theta.Length - 1).CopyTo(eps.AsSpan(1));
+            eps[0] = currentEps;
+        }
+
+        double ScalarProduct() => theta.Length >= 64
+            ? TensorPrimitives.Dot(theta, eps)
+            : theta.Zip(eps, (t, e) => t * e).Sum();
+
+        // ReSharper disable once IteratorNeverReturns
     }
 }
