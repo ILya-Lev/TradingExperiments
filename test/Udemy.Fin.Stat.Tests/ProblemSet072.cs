@@ -22,6 +22,24 @@ public class ProblemSet072(ITestOutputHelper output)
         output.WriteLine($"generated {ma1.Length} points of the white noise based moving average of lag=1" +
                          $"\n\n saved into {fileInfo.Path}");
     }
+    
+    [Fact]
+    public void AutoRegression1_Generate_Plot()
+    {
+        var ar1 = AlgLibWhiteNoise.GetArSimulation(fi0: 0, fi1: 0.9, stdDev: 1.0).Take(1000).ToArray();
+        var fileInfo = PlotSeries("auto regression 1", "gaussian", ar1);
+        output.WriteLine($"generated {ar1.Length} points of the white noise based auto regression of lag=1" +
+                         $"\n\n saved into {fileInfo.Path}");
+    }
+
+    [Fact]
+    public void AutoRegression1_GenerateBoundaryCase_Plot()
+    {
+        var ar1 = AlgLibWhiteNoise.GetArSimulation(fi0: 0, fi1: -1.0, stdDev: 1.0).Take(1000).ToArray();
+        var fileInfo = PlotSeries("auto regression fi1 -1", "gaussian", ar1);
+        output.WriteLine($"generated {ar1.Length} points of the white noise based auto regression of lag=1" +
+                         $"\n\n saved into {fileInfo.Path}");
+    }
 
     [Fact]
     public void MovingAverage100_Generate_Plot()
