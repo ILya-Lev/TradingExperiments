@@ -52,6 +52,7 @@ public static class AutoCorrelationCalculator
         var rentedBuffer = ArrayPool<double>.Shared.Rent(sample.Length);
         try
         {
+            //a sort of pointer to the array => values are in the array
             var centered = rentedBuffer.AsSpan(0, sample.Length);
             var mean = TensorPrimitives.Sum(sample) / sample.Length;
             TensorPrimitives.Subtract(sample, mean, centered);
@@ -61,7 +62,7 @@ public static class AutoCorrelationCalculator
             if (variance == 0) return [];//the variance goes into the denominator => avoid crashes
 
             var acf = new double[maxLag + 1];
-
+            
             Parallel.For(0, maxLag + 1,
                 new ParallelOptions() { MaxDegreeOfParallelism = Environment.ProcessorCount - 1 },
                 lag =>
