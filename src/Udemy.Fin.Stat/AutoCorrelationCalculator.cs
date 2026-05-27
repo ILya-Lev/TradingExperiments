@@ -123,4 +123,18 @@ public static class AutoCorrelationCalculator
 
         return nominator / (sample.Count - 1);
     }
+
+    public static IEnumerable<double> GetAveragesSeries(this IEnumerable<double> source)
+    {
+        var countSoFar = 0;
+        var totalSoFar = 0.0;
+
+        using var iterator = source.GetEnumerator();
+        while (iterator.MoveNext())
+        {
+            countSoFar++;
+            totalSoFar += iterator.Current;
+            yield return totalSoFar / countSoFar;
+        }
+    }
 }

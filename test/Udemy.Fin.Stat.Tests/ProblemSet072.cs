@@ -83,6 +83,17 @@ public class ProblemSet072(ITestOutputHelper output)
         output.WriteLine($"generated {rw.Length} points of the random walk");
     }
 
+    [Fact]
+    public void GetAveragesSample_Generate_Plot()
+    {
+        var series = Enumerable.Range(1, 1000).Select(n => Random.Shared.NextDouble()).ToArray();
+        var averages = series.GetAveragesSeries().ToArray();
+        
+        PlotSeries("random sample", "points", series);
+        PlotSeries("averages series", "mean", averages);
+        output.WriteLine($"generated {averages.Length} points of mean");
+    }
+
     private static SavedImageInfo PlotSeries(string sourceName, string dataNature, double[] series)
     {
         var chartName = $"{sourceName} {series.Length} {dataNature}.svg";
