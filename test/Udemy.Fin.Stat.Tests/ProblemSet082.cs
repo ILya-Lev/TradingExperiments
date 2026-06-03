@@ -38,19 +38,49 @@ public class ProblemSet082(ITestOutputHelper output)
         output.WriteLine($"plotted {plotSeriesInfo.Path}");
     }
 
-    private static async Task<IEnumerable<double>> LoadData(string file)
+    /// <summary>
+    /// before 1957-03-15 (inclusively) it was SnP90 as of 90 companies. After became SnP500 of 500 companies.
+    /// </summary>
+    [Theory]
+    [InlineData("GSPC", "S&P 500")]
+    public async Task ClosePrices_Autocorrelation_SnP90_vs_SnP500_Plot(string file, string indexName)
+    {
+        var thresholdDate = DateOnly.Parse("1957-03-15");
+        
+        var closeSeries90 = await LoadData(file, d => d <= thresholdDate).ContinueWith(t => t.Result.ToArray());
+        var closeSeries500 = await LoadData(file, d => d > thresholdDate).ContinueWith(t => t.Result.ToArray());
+        
+        //var logReturns = closeSeries.Skip(1).Zip(closeSeries.SkipLast(1), (n, p) => Math.Log(n / p) * 100).ToArray();
+        var returns90 = closeSeries90.Skip(1).Zip(closeSeries90.SkipLast(1), (n, p) => n-p).ToArray();
+        var absReturns90 = returns90.Select(Math.Abs).ToArray();
+
+        var returns500 = closeSeries500.Skip(1).Zip(closeSeries500.SkipLast(1), (n, p) => n-p).ToArray();
+        var absReturns500 = returns500.Select(Math.Abs).ToArray();
+        
+        var acAbs90 = absReturns90.GetAutoCorrelationParallel(absReturns90.Length - 1);
+        var acAbs500 = absReturns500.GetAutoCorrelationParallel(absReturns500.Length - 1);
+
+        DemoHelpers.PlotSeries($"{indexName} abs ret 90 auto corr","auto correlation", acAbs90, false);
+        DemoHelpers.PlotSeries($"{indexName} abs ret 500 auto corr","auto correlation", acAbs500, false);
+    }
+
+    private static async Task<IEnumerable<double>> LoadData(string file, Func<DateOnly, bool>? dateFilter = null)
     {
         var path = Path.Combine(Directory.GetCurrentDirectory(), "TestData", $"{file}.parquet");
         try
         {
             return await DataLoader.LoadParquet<ExIndex>(path)
-                .ContinueWith(t => t.Result.Select(p => (double)p.Close));
+                .ContinueWith(t => t.Result
+                    .Where(p => dateFilter?.Invoke(p.Date) ?? true)
+                    .Select(p => (double)p.Close));
         }
         catch (Exception exc)
         {
             //motivation: file contains either ExIndex or ExOhlc => if the first fails, try with the last one.
             return await DataLoader.LoadParquet<ExOhlc>(path)
-                .ContinueWith(t => t.Result.Select(p => (double)p.Close));
+                .ContinueWith(t => t.Result
+                    .Where(p => dateFilter?.Invoke(p.Date) ?? true)
+                    .Select(p => (double)p.Close));
         }
     }
 
