@@ -7,10 +7,13 @@ namespace Sudoku.Tests;
 [Trait("Category", "Unit")]
 public class KnightMovesTests(ITestOutputHelper output)
 {
-    [Fact]
-    public void Traverse_Classics_Observe()
+    [Theory]
+    [InlineData(0,0)]
+    [InlineData(3,3)]
+    [InlineData(5,2)]
+    public void Traverse_Classics_Observe(int initialRow, int initialCol)
     {
-        var hops = KnightMoves.Traverse(8, 8, new(0, 0)).ToArray();
+        var hops = KnightMoves.Traverse(8, 8, new(initialRow, initialCol)).ToArray();
 
         hops.Should().HaveCount(64, "8*8 visiting every cell once");
 
