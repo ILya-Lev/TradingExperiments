@@ -1,4 +1,8 @@
 ﻿using System.Numerics.Tensors;
+using FluentAssertions;
+using FluentAssertions.Execution;
+using MathNet.Numerics.Distributions;
+using MathNet.Numerics.Statistics;
 using Parquet;
 
 namespace Udemy.Fin.Stat.Tests;
@@ -65,6 +69,45 @@ public class ProblemSet082(ITestOutputHelper output)
         DemoHelpers.PlotSeries($"{indexName} abs ret auto corr {startDate}--{endDate}","auto correlation", acAbs, false);
     }
 
+    //lecture 86 - geometric random walk - parameter calibration for Bernoulli model
+    //P(t) = P(0) * exp(S(t)); S(t) = sum (r(i), i=1..t); r(t) = a + b * X(t), where X(t) ~ Bern(0.5)
+    //we're figuring out a and b from E(r) and Var(r); E(r) = a + b/2; Var(r) = b*b/4;
+    [Theory]
+    //[InlineData("1991-07-01", "1996-12-31")]//mid 90s
+    [InlineData("1992-01-01", "1996-12-31")]//mid 90s
+    public async Task GeometricRandomWalk_Bernoulli_Calibrate(string startDate, string endDate)
+    {
+        var fromDate = string.IsNullOrWhiteSpace(startDate) ? DateOnly.MinValue : DateOnly.Parse(startDate);
+        var toDate = string.IsNullOrWhiteSpace(endDate) ? DateOnly.MaxValue : DateOnly.Parse(endDate);
+        var dateFilter = (DateOnly d) => fromDate <= d && d <= toDate;
+
+        var indexName = "S&P500";
+        var file = "GSPC";
+        
+        var closeSeries = await LoadData(file, dateFilter).ContinueWith(t => t.Result.ToArray());
+        
+        var logReturns = closeSeries.Skip(1).Zip(closeSeries.SkipLast(1), (n, p) => Math.Log(n / p)).ToArray();
+
+        var logReturnsStatistics = new DescriptiveStatistics(logReturns);
+        var volatility = logReturnsStatistics.StandardDeviation;
+        var b = 2 * volatility;
+        var a = logReturnsStatistics.Mean - volatility;//drift - volatility
+
+        var bernoulliSample = new Bernoulli(0.5).Samples().Take(1_000);
+        var modeledReturns = bernoulliSample.Select(brn => a + b * brn);
+        var modeledSeries = GetCumulativeSum(modeledReturns).Select(s => closeSeries[0] * Math.Exp(s)).ToArray();
+
+        var p1 = DemoHelpers.PlotSeries($"{indexName} {startDate}--{endDate}", "prices", closeSeries, false);
+        var p2 = DemoHelpers.PlotSeries($"geometric random walk {indexName} returns {startDate}--{endDate}", "geometric random walk", modeledSeries, false);
+
+        output.WriteLine($"plotted\n {p1.Path}\n\n and \n{p2.Path}\n\n");
+
+        using var _ = new AssertionScope();
+        a.Should().BeApproximately(-0.005630, 1e-6);
+        b.Should().BeApproximately(0.012168, 1e-6);
+        output.WriteLine($"a = {a:N6}; b = {b:N6}");//a = -0.5816; b = 1.2598 1991-07-01; a = -0.005630; b = 0.012168 1992-01-01
+    }
+
     private static async Task<IEnumerable<double>> LoadData(string file, Func<DateOnly, bool>? dateFilter = null)
     {
         var path = Path.Combine(Directory.GetCurrentDirectory(), "TestData", $"{file}.parquet");
@@ -100,6 +143,16 @@ public class ProblemSet082(ITestOutputHelper output)
 
             yield return 100 * Math.Log(ratio);
             previous = iterator.Current;
+        }
+    }
+
+    private static IEnumerable<double> GetCumulativeSum(IEnumerable<double> numbers)
+    {
+        var sumSoFar = 0.0;
+        foreach (var number in numbers)
+        {
+            sumSoFar += number;
+            yield return sumSoFar;
         }
     }
 }
