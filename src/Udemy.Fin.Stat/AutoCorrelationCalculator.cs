@@ -43,7 +43,7 @@ public static class AutoCorrelationCalculator
         }
     }
 
-    public static double[] GetAutoCorrelationParallel(this double[] sample, int maxLag) 
+    public static double[] GetAutoCorrelationParallel(this double[] sample, int maxLag)
         => sample.AsSpan().GetAutoCorrelationParallel(maxLag);
 
     public static double[] GetAutoCorrelationParallel(this Span<double> sample, int maxLag)
@@ -67,7 +67,7 @@ public static class AutoCorrelationCalculator
             if (variance == 0) return [];//the variance goes into the denominator => avoid crashes
 
             var acf = new double[maxLag + 1];
-            
+
             Parallel.For(0, maxLag + 1,
                 new ParallelOptions() { MaxDegreeOfParallelism = Environment.ProcessorCount - 1 },
                 lag =>
@@ -92,7 +92,7 @@ public static class AutoCorrelationCalculator
     public static (decimal qStat, decimal pValue) GetLjungBoxTestValues(this ReadOnlySpan<decimal> sample, int maxLag)
     {
         var n = sample.Length;
-        
+
         var mean = TensorPrimitives.Average(sample);
         var centered = new Span<decimal>(new decimal[n]);
         TensorPrimitives.Subtract(sample, mean, centered);
@@ -106,7 +106,7 @@ public static class AutoCorrelationCalculator
             var covarSum = TensorPrimitives.Dot(lhs, rhs);
             var rhoLag = covarSum / varianceSum;
 
-            qStat += rhoLag*rhoLag/(n-lag);
+            qStat += rhoLag * rhoLag / (n - lag);
         }
         qStat *= n * (n + 2);
 
@@ -119,15 +119,15 @@ public static class AutoCorrelationCalculator
         var n = sampleSize;
         var qStat = 0m;
         var lag = 1;
-        foreach(var acf in acfs.Skip(1))
+        foreach (var acf in acfs.Skip(1))
         {
-            qStat += acf*acf/(n-lag);
+            qStat += acf * acf / (n - lag);
             lag++;
         }
 
         qStat *= n * (n + 2);
 
-        var pValue = 1m - (decimal)ChiSquared.CDF(acfs.Count-1, (double)qStat);
+        var pValue = 1m - (decimal)ChiSquared.CDF(acfs.Count - 1, (double)qStat);
         return (qStat, pValue);
     }
 
@@ -197,10 +197,10 @@ public static class AutoCorrelationCalculator
         var n = lhs.Length;
         var lhsMean = TensorPrimitives.Sum(lhs) / n;
         var rhsMean = TensorPrimitives.Sum(rhs) / n;
-        
+
         var centeredLhs = new Span<double>(new double[n]);
         TensorPrimitives.Subtract(lhs, lhsMean, centeredLhs);
-        
+
         var centeredRhs = new Span<double>(new double[n]);
         TensorPrimitives.Subtract(rhs, rhsMean, centeredRhs);
 
@@ -213,5 +213,38 @@ public static class AutoCorrelationCalculator
         var covariance = TensorPrimitives.Dot(centeredLhs, centeredRhs) / (n - 1);
         var correlation = covariance / Math.Sqrt(varLhs * varRhs);
         return correlation;
+    }
+
+    /// <summary>
+    /// Executes the Turning Point test for randomness in a time series.
+    /// </summary>
+    /// <param name="data">The time series data.</param>
+    /// <returns>A tuple containing the Z-statistic and the two-tailed p-value.</returns>
+    public static (double ZStat, double PValue) TurningPointsTest(this ReadOnlySpan<double> data)
+    {
+        var n = data.Length;
+        if (n < 3) throw new ArgumentException("At least 3 data points are required.");
+
+        var turningPoints = 0;
+
+        // Count peaks and troughs
+        for (var i = 1; i < n - 1; i++)
+        {
+            if ((data[i] > data[i - 1] && data[i] > data[i + 1]) ||
+                (data[i] < data[i - 1] && data[i] < data[i + 1]))
+            {
+                turningPoints++;
+            }
+        }
+
+        var expected = 2.0 * (n - 2) / 3.0;  //some empiric formulas from the lecture 88
+        var variance = (16.0 * n - 29.0) / 90.0;
+
+        var zStat = (turningPoints - expected) / Math.Sqrt(variance);
+
+        // Two-tailed p-value from Standard Normal distribution
+        var pValue = 2.0 * (1.0 - Normal.CDF(0, 1, Math.Abs(zStat)));
+
+        return (zStat, pValue);
     }
 }

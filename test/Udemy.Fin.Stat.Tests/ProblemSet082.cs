@@ -157,6 +157,14 @@ public class ProblemSet082(ITestOutputHelper output)
         var (qStat, pValue) = autoCorrelation.Take(maxLags + 1 /*as we skip #1 - always = to 1*/)
             .Select(r => (decimal)r).ToArray().GetLjungBoxTestValuesFromAcf(logReturns.Length);
 
+        var (qStatMcleodLi, pValueMcleodLi) = autoCorrelationOfSquared
+            .Take(maxLags + 1)
+            .Select(r => (decimal)r)
+            .ToArray()
+            .GetLjungBoxTestValuesFromAcf(logReturns.Length);
+
+        var (zStat, pValueTurningPoints) = logReturns.TurningPointsTest();
+
         qStat.Should().BeApproximately(qStatDirect, 2e-2m);
         pValue.Should().BeApproximately(pValueDirect, 2e-2m);
 
@@ -165,7 +173,10 @@ public class ProblemSet082(ITestOutputHelper output)
         var p3 = DemoHelpers.PlotSeries($"geometric random walk {indexName} autocorrelation {startDate}--{endDate}", "autocorrelation", autoCorrelation, false);
         var p4 = DemoHelpers.PlotSeries($"geometric random walk {indexName} autocorrelation or square {startDate}--{endDate}", "autocorrelation of square", autoCorrelationOfSquared, false);
 
-        output.WriteLine($"correlation {correlation}; Ljung-Box qStat {qStat}; pValue {pValue}");
+        output.WriteLine($"correlation {correlation}; \n" +
+                         $"Ljung-Box qStat {qStat:N4}; pValue {pValue:N4}\n" +
+                         $"Mcleod-Li qStat {qStatMcleodLi:N4}; pValue {pValueMcleodLi:E4}\n" +
+                         $"turning points test {zStat}; pValue {pValueTurningPoints}");
         output.WriteLine($"plotted\n {p1.Path}\n\n and \n{p2.Path}\n\n and \n{p3.Path}\n\n and \n{p4.Path}\n\n");
     }
 
