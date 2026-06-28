@@ -145,13 +145,28 @@ public class ProblemSet082(ITestOutputHelper output)
 
         var modeledSeries = randomWalk.Zip(trend, (rw, t) => closeSeries[0] * Math.Exp(t + rw)).ToArray();
 
+        var autoCorrelation = logReturns.GetAutoCorrelationParallel(100);
         var correlation = closeSeries.CorrelationFunction(modeledSeries);
+
+        var squaredLogReturns = new Span<double>(new double[logReturns.Length]);
+        TensorPrimitives.Multiply(logReturns, logReturns, squaredLogReturns);
+        var autoCorrelationOfSquared = squaredLogReturns.GetAutoCorrelationParallel(100);
+
+        var maxLags = logReturns.Length / 20;//the rule of thumb - use up to 5% of the sample data for Ljung-Box
+        var (qStatDirect, pValueDirect) = logReturns.Select(r => (decimal)r).ToArray().GetLjungBoxTestValues(maxLags);
+        var (qStat, pValue) = autoCorrelation.Take(maxLags + 1 /*as we skip #1 - always = to 1*/)
+            .Select(r => (decimal)r).ToArray().GetLjungBoxTestValuesFromAcf(logReturns.Length);
+
+        qStat.Should().BeApproximately(qStatDirect, 2e-2m);
+        pValue.Should().BeApproximately(pValueDirect, 2e-2m);
 
         var p1 = DemoHelpers.PlotSeries($"{indexName} {startDate}--{endDate}", "prices", closeSeries, false);
         var p2 = DemoHelpers.PlotSeries($"geometric random walk {indexName} returns {startDate}--{endDate}", "lognormal", modeledSeries, false);
+        var p3 = DemoHelpers.PlotSeries($"geometric random walk {indexName} autocorrelation {startDate}--{endDate}", "autocorrelation", autoCorrelation, false);
+        var p4 = DemoHelpers.PlotSeries($"geometric random walk {indexName} autocorrelation or square {startDate}--{endDate}", "autocorrelation of square", autoCorrelationOfSquared, false);
 
-        output.WriteLine($"correlation {correlation}");
-        output.WriteLine($"plotted\n {p1.Path}\n\n and \n{p2.Path}\n\n");
+        output.WriteLine($"correlation {correlation}; Ljung-Box qStat {qStat}; pValue {pValue}");
+        output.WriteLine($"plotted\n {p1.Path}\n\n and \n{p2.Path}\n\n and \n{p3.Path}\n\n and \n{p4.Path}\n\n");
     }
 
     private static async Task<IEnumerable<double>> LoadData(string file, Func<DateOnly, bool>? dateFilter = null)

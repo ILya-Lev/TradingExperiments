@@ -1,6 +1,7 @@
 ﻿using System.Buffers;
 using System.Numerics;
 using System.Numerics.Tensors;
+using MathNet.Numerics.Distributions;
 
 namespace Udemy.Fin.Stat;
 
@@ -42,20 +43,23 @@ public static class AutoCorrelationCalculator
         }
     }
 
-    public static double[] GetAutoCorrelationParallel(this double[]? sample, int maxLag)
+    public static double[] GetAutoCorrelationParallel(this double[] sample, int maxLag) 
+        => sample.AsSpan().GetAutoCorrelationParallel(maxLag);
+
+    public static double[] GetAutoCorrelationParallel(this Span<double> sample, int maxLag)
     {
         //guard clauses
-        if (sample is null || sample.Length == 0) return [];
+        var n = sample.Length;
+        if (n == 0) return [];
         if (maxLag >= sample.Length)
-            throw new InvalidOperationException(
-                $"max lag {maxLag} must be smaller than the sample size {sample.Length}");
+            throw new InvalidOperationException($"max lag {maxLag} must be smaller than the sample size {n}");
 
-        var rentedBuffer = ArrayPool<double>.Shared.Rent(sample.Length);
+        var rentedBuffer = ArrayPool<double>.Shared.Rent(n);
         try
         {
             //a sort of pointer to the array => values are in the array
-            var centered = rentedBuffer.AsSpan(0, sample.Length);
-            var mean = TensorPrimitives.Sum(sample) / sample.Length;
+            var centered = rentedBuffer.AsSpan(0, n);
+            var mean = TensorPrimitives.Sum(sample) / n;
             TensorPrimitives.Subtract(sample, mean, centered);
 
             //normalization factors cancels out, so we drop it here
@@ -68,8 +72,8 @@ public static class AutoCorrelationCalculator
                 new ParallelOptions() { MaxDegreeOfParallelism = Environment.ProcessorCount - 1 },
                 lag =>
                 {
-                    ReadOnlySpan<double> centeredSpan = rentedBuffer.AsSpan(0, sample.Length);
-                    var lhs = centeredSpan[..(sample.Length - lag)];
+                    ReadOnlySpan<double> centeredSpan = rentedBuffer.AsSpan(0, n);
+                    var lhs = centeredSpan[..(n - lag)];
                     var rhs = centeredSpan[lag..];
                     var covariance = TensorPrimitives.Dot(lhs, rhs);
 
@@ -83,6 +87,48 @@ public static class AutoCorrelationCalculator
         {
             ArrayPool<double>.Shared.Return(rentedBuffer);
         }
+    }
+
+    public static (decimal qStat, decimal pValue) GetLjungBoxTestValues(this ReadOnlySpan<decimal> sample, int maxLag)
+    {
+        var n = sample.Length;
+        
+        var mean = TensorPrimitives.Average(sample);
+        var centered = new Span<decimal>(new decimal[n]);
+        TensorPrimitives.Subtract(sample, mean, centered);
+
+        var varianceSum = TensorPrimitives.Dot(centered, centered);
+        var qStat = 0m;
+        for (var lag = 1; lag <= maxLag; lag++)
+        {
+            var lhs = centered[lag..];
+            var rhs = centered[..(n - lag)];
+            var covarSum = TensorPrimitives.Dot(lhs, rhs);
+            var rhoLag = covarSum / varianceSum;
+
+            qStat += rhoLag*rhoLag/(n-lag);
+        }
+        qStat *= n * (n + 2);
+
+        var pValue = 1m - (decimal)ChiSquared.CDF(maxLag, (double)qStat);
+        return (qStat, pValue);
+    }
+
+    public static (decimal qStat, decimal pValue) GetLjungBoxTestValuesFromAcf(this IReadOnlyCollection<decimal> acfs, int sampleSize)
+    {
+        var n = sampleSize;
+        var qStat = 0m;
+        var lag = 1;
+        foreach(var acf in acfs.Skip(1))
+        {
+            qStat += acf*acf/(n-lag);
+            lag++;
+        }
+
+        qStat *= n * (n + 2);
+
+        var pValue = 1m - (decimal)ChiSquared.CDF(acfs.Count-1, (double)qStat);
+        return (qStat, pValue);
     }
 
     public static double[] GetAutoCorrelation(this IReadOnlyList<double>? sample, int maxLag)
