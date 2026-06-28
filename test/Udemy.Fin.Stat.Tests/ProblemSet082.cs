@@ -22,7 +22,7 @@ public class ProblemSet082(ITestOutputHelper output)
         var series = logReturns;
         var squareSeries = logReturns.Select(c => c * c).ToArray();
         var absSeries = logReturns.Select(Math.Abs).ToArray();
-        
+
         var mean = TensorPrimitives.Sum(series) / series.Length;
         var variance = series.GetSampleVariance(mean);
 
@@ -36,7 +36,7 @@ public class ProblemSet082(ITestOutputHelper output)
         output.WriteLine($"auto correlation abs close 0 {acAbs[0]}, 1 {acAbs[1]}, 2 {acAbs[2]}");
 
         var plotSeriesInfo = DemoHelpers.PlotSeries(indexName, "log returns", series, false);
-        DemoHelpers.PlotSeries($"{indexName} log ret auto corr","auto correlation", acLogRet, false);
+        DemoHelpers.PlotSeries($"{indexName} log ret auto corr", "auto correlation", acLogRet, false);
         DemoHelpers.PlotSeries($"{indexName} squared ret auto corr", "auto correlation", acSquareRet, false);
         DemoHelpers.PlotSeries($"{indexName} abs auto corr", "auto correlation", acAbs, false);
         output.WriteLine($"plotted {plotSeriesInfo.Path}");
@@ -57,16 +57,16 @@ public class ProblemSet082(ITestOutputHelper output)
 
         var indexName = "S&P500";
         var file = "GSPC";
-        
+
         var closeSeries = await LoadData(file, dateFilter).ContinueWith(t => t.Result.ToArray());
-        
+
         //var logReturns = closeSeries.Skip(1).Zip(closeSeries.SkipLast(1), (n, p) => Math.Log(n / p) * 100).ToArray();
-        var returns = closeSeries.Skip(1).Zip(closeSeries.SkipLast(1), (n, p) => n-p).ToArray();
+        var returns = closeSeries.Skip(1).Zip(closeSeries.SkipLast(1), (n, p) => n - p).ToArray();
         var absReturns = returns.Select(Math.Abs).ToArray();
         var acAbs = absReturns.GetAutoCorrelationParallel(absReturns.Length - 1);
 
-        DemoHelpers.PlotSeries($"{indexName} returns {startDate}--{endDate}","returns", returns, false);
-        DemoHelpers.PlotSeries($"{indexName} abs ret auto corr {startDate}--{endDate}","auto correlation", acAbs, false);
+        DemoHelpers.PlotSeries($"{indexName} returns {startDate}--{endDate}", "returns", returns, false);
+        DemoHelpers.PlotSeries($"{indexName} abs ret auto corr {startDate}--{endDate}", "auto correlation", acAbs, false);
     }
 
     //lecture 86 - geometric random walk - parameter calibration for Bernoulli model
@@ -84,9 +84,9 @@ public class ProblemSet082(ITestOutputHelper output)
 
         var indexName = "S&P500";
         var file = "GSPC";
-        
+
         var closeSeries = await LoadData(file, dateFilter).ContinueWith(t => t.Result.ToArray());
-        
+
         var logReturns = closeSeries.Skip(1).Zip(closeSeries.SkipLast(1), (n, p) => Math.Log(n / p)).ToArray();
 
         var logReturnsStatistics = new DescriptiveStatistics(logReturns);
@@ -107,6 +107,51 @@ public class ProblemSet082(ITestOutputHelper output)
         //a.Should().BeApproximately(-0.005630, 1e-6);
         //b.Should().BeApproximately(0.012168, 1e-6);
         output.WriteLine($"a = {a:N6}; b = {b:N6}");//a = -0.5816; b = 1.2598 1991-07-01; a = -0.005630; b = 0.012168 1992-01-01
+    }
+
+    //lecture 87 - geometric random walk - parameter calibration for LogNormal model
+    //P(t) = P(0) * exp(S(t)); S(t) = sum (r(i), i=1..t); r(t) ~ N(mu, sigma)
+    //X(t) = exp(S(t)) itself is a LogNormal(t*mu, sqrt(t)*sigma))
+    //E(X(t)) = exp(mu + sigma/2)
+    //Var(X(t)) = exp(2*mu + sigma^2) * (exp(sigma^2) - 1)
+    [Theory]
+    //[InlineData("1991-07-01", "1996-12-31")]//mid 90s
+    //[InlineData("1992-01-01", "1996-12-31")]//mid 90s
+    [InlineData("2003-07-01", "2006-12-31")]//mid 2000s
+    public async Task GeometricRandomWalk_LogNormal_Calibrate(string startDate, string endDate)
+    {
+        var fromDate = string.IsNullOrWhiteSpace(startDate) ? DateOnly.MinValue : DateOnly.Parse(startDate);
+        var toDate = string.IsNullOrWhiteSpace(endDate) ? DateOnly.MaxValue : DateOnly.Parse(endDate);
+        var dateFilter = (DateOnly d) => fromDate <= d && d <= toDate;
+
+        var indexName = "S&P500";
+        var file = "GSPC";
+
+        var closeSeries = await LoadData(file, dateFilter).ContinueWith(t => t.Result.ToArray());
+
+        var logReturns = closeSeries.Skip(1).Zip(closeSeries.SkipLast(1), (n, p) => Math.Log(n / p)).ToArray();
+
+        var logReturnsStatistics = new DescriptiveStatistics(logReturns);
+        var drift = logReturnsStatistics.Mean;
+        var volatility = logReturnsStatistics.StandardDeviation;
+
+        var trend = Enumerable.Range(1, closeSeries.Length).Select(t => drift * t);
+        var randomWalk = AutoRegressiveMovingAverageProcess.GenerateArma([1.0], [], volatility, 0)
+            .Take(closeSeries.Length)
+            .ToArray();
+        
+        var lognormalRandomWalk = new double[closeSeries.Length];
+        new LogNormal(drift, volatility).Samples(lognormalRandomWalk);
+
+        var modeledSeries = randomWalk.Zip(trend, (rw, t) => closeSeries[0] * Math.Exp(t + rw)).ToArray();
+
+        var correlation = closeSeries.CorrelationFunction(modeledSeries);
+
+        var p1 = DemoHelpers.PlotSeries($"{indexName} {startDate}--{endDate}", "prices", closeSeries, false);
+        var p2 = DemoHelpers.PlotSeries($"geometric random walk {indexName} returns {startDate}--{endDate}", "lognormal", modeledSeries, false);
+
+        output.WriteLine($"correlation {correlation}");
+        output.WriteLine($"plotted\n {p1.Path}\n\n and \n{p2.Path}\n\n");
     }
 
     private static async Task<IEnumerable<double>> LoadData(string file, Func<DateOnly, bool>? dateFilter = null)

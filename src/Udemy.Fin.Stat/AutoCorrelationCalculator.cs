@@ -139,4 +139,33 @@ public static class AutoCorrelationCalculator
             yield return totalSoFar / countSoFar;
         }
     }
+
+    public static double CorrelationFunction(this double[] lhs, double[] rhs)
+    {
+        if (lhs.Length != rhs.Length)
+            throw new ArgumentException($"lhs length {lhs.Length} mismatch rhs length {rhs.Length}");
+
+        if (lhs.Length <= 1)
+            throw new InvalidOperationException("Too small sample data, needs at least 2 items");
+
+        var n = lhs.Length;
+        var lhsMean = TensorPrimitives.Sum(lhs) / n;
+        var rhsMean = TensorPrimitives.Sum(rhs) / n;
+        
+        var centeredLhs = new Span<double>(new double[n]);
+        TensorPrimitives.Subtract(lhs, lhsMean, centeredLhs);
+        
+        var centeredRhs = new Span<double>(new double[n]);
+        TensorPrimitives.Subtract(rhs, rhsMean, centeredRhs);
+
+        var varLhs = TensorPrimitives.SumOfSquares(centeredLhs) / (n - 1);
+        var varRhs = TensorPrimitives.SumOfSquares(centeredRhs) / (n - 1);
+
+        if (varLhs == 0 || varRhs == 0)
+            throw new InvalidOperationException($"variance of one of the series is zero: lhs {varLhs} and rhs {varRhs}");
+
+        var covariance = TensorPrimitives.Dot(centeredLhs, centeredRhs) / (n - 1);
+        var correlation = covariance / Math.Sqrt(varLhs * varRhs);
+        return correlation;
+    }
 }
