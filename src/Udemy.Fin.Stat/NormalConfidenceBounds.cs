@@ -10,13 +10,20 @@ namespace Udemy.Fin.Stat;
 /// </summary>
 public static class NormalConfidenceBounds
 {
-    public static (double lower, double upper) GetMuInterval(this double mean, int count, double confidenceLevel, double stdDev = 1.0)
+    public static (double lower, double upper) GetMuInterval(this double mean, int count, double confidenceLevel,
+        double stdDev = 1.0)
+        => GetMuBounds(mean, count, 1 - (1 - confidenceLevel) / 2, stdDev);
+
+    public static (double lower, double upper) GetMuBounds(this double mean, int count, double confidenceLevel, double stdDev = 1.0)
     {
         var halfRange = stdDev / Math.Sqrt(count) * Normal.InvCDF(0, 1, confidenceLevel);
         return (mean - halfRange, mean + halfRange);
     }
 
     public static (double lower, double upper) GetMuInterval(this IEnumerable<double> sample, double confidenceLevel, double stdDev = 1.0)
+        => GetMuBounds(sample, 1 - (1 - confidenceLevel) / 2, stdDev);
+
+    public static (double lower, double upper) GetMuBounds(this IEnumerable<double> sample, double confidenceLevel, double stdDev = 1.0)
     {
         var (mean, count) = GetAverageAndCount(sample);
         var halfRange = stdDev / Math.Sqrt(count) * Normal.InvCDF(0, 1, confidenceLevel);
