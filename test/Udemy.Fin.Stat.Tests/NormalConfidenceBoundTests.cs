@@ -1,4 +1,5 @@
-﻿using FluentAssertions;
+﻿using System.Security.Cryptography.X509Certificates;
+using FluentAssertions;
 using FluentAssertions.Execution;
 
 namespace Udemy.Fin.Stat.Tests;
@@ -193,5 +194,24 @@ public class NormalConfidenceBoundTests
         upperReturns99.Should().BeApproximately(0.02992, 1e-6);
     }
 
+
+    [Fact] 
+    public void GetPValue_Sample1_Observe()
+    {
+        var sample = new[]
+        {
+            12.25, 8.48, 4.55, 8.14, 8.34, 8.82, 6.68, 8.32, 12.92, 5.92,
+            6.62, 4.0, 11.10, 10.19, 6.63, 3.23, 2.65, 8.11, 13.12, 6.32
+        };
+
+        var (z, p) = sample.GetPValue(6.5, Math.Sqrt(7));
+        var c = 0.05.GetCriticalRegion();
+
+        using var _ = new AssertionScope();
+        z.Should().BeApproximately(2.230362, 1e-3);
+        p.Should().BeApproximately(0.987138, 1e-6);
+        c.Should().BeApproximately(1.644853, 1e-3);
+        //as z > c => reject the null hypothesis (that mu = 6.5)
+    }
 }
 

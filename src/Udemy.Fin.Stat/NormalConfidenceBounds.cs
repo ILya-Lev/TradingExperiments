@@ -30,6 +30,16 @@ public static class NormalConfidenceBounds
         return (mean - halfRange, mean + halfRange);
     }
 
+    public static (double z, double p) GetPValue(this IEnumerable<double> sample, double mu = 0.0, double stdDev = 1.0)
+    {
+        var (mean, count) = GetAverageAndCount(sample);
+        var z = (mean - mu) / stdDev * Math.Sqrt(count);
+        var p = Normal.CDF(0, 1, z);
+        return (z, p);
+    }
+
+    public static double GetCriticalRegion(this double significanceLevel) => Normal.InvCDF(0, 1, 1-significanceLevel);
+
     private static (double mean, int count) GetAverageAndCount(IEnumerable<double> sample) => sample switch
     {
         double[] array => (TensorPrimitives.Average(array), array.Length),
