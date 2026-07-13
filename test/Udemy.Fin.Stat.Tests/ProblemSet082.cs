@@ -16,7 +16,7 @@ public class ProblemSet082(ITestOutputHelper output)
     [InlineData("SX5E", "STOXX500")]
     public async Task ClosePrices_SampleMean_Autocorrelation_Plot(string file, string indexName)
     {
-        var closeSeries = await LoadData(file).ContinueWith(t => t.Result.ToArray());
+        var closeSeries = await DemoHelpers.LoadClosePrices(file).ContinueWith(t => t.Result.ToArray());
         var logReturns = closeSeries.Skip(1).Zip(closeSeries.SkipLast(1), (n, p) => Math.Log(n / p) * 100).ToArray();
 
         var series = logReturns;
@@ -58,7 +58,7 @@ public class ProblemSet082(ITestOutputHelper output)
         var indexName = "S&P500";
         var file = "GSPC";
 
-        var closeSeries = await LoadData(file, dateFilter).ContinueWith(t => t.Result.ToArray());
+        var closeSeries = await DemoHelpers.LoadClosePrices(file, dateFilter).ContinueWith(t => t.Result.ToArray());
 
         //var logReturns = closeSeries.Skip(1).Zip(closeSeries.SkipLast(1), (n, p) => Math.Log(n / p) * 100).ToArray();
         var returns = closeSeries.Skip(1).Zip(closeSeries.SkipLast(1), (n, p) => n - p).ToArray();
@@ -85,7 +85,7 @@ public class ProblemSet082(ITestOutputHelper output)
         var indexName = "S&P500";
         var file = "GSPC";
 
-        var closeSeries = await LoadData(file, dateFilter).ContinueWith(t => t.Result.ToArray());
+        var closeSeries = await DemoHelpers.LoadClosePrices(file, dateFilter).ContinueWith(t => t.Result.ToArray());
 
         var logReturns = closeSeries.Skip(1).Zip(closeSeries.SkipLast(1), (n, p) => Math.Log(n / p)).ToArray();
 
@@ -127,7 +127,7 @@ public class ProblemSet082(ITestOutputHelper output)
         var indexName = "S&P500";
         var file = "GSPC";
 
-        var closeSeries = await LoadData(file, dateFilter).ContinueWith(t => t.Result.ToArray());
+        var closeSeries = await DemoHelpers.LoadClosePrices(file, dateFilter).ContinueWith(t => t.Result.ToArray());
 
         var logReturns = closeSeries.Skip(1).Zip(closeSeries.SkipLast(1), (n, p) => Math.Log(n / p)).ToArray();
 
@@ -178,26 +178,6 @@ public class ProblemSet082(ITestOutputHelper output)
                          $"Mcleod-Li qStat {qStatMcleodLi:N4}; pValue {pValueMcleodLi:E4}\n" +
                          $"turning points test {zStat}; pValue {pValueTurningPoints}");
         output.WriteLine($"plotted\n {p1.Path}\n\n and \n{p2.Path}\n\n and \n{p3.Path}\n\n and \n{p4.Path}\n\n");
-    }
-
-    private static async Task<IEnumerable<double>> LoadData(string file, Func<DateOnly, bool>? dateFilter = null)
-    {
-        var path = Path.Combine(Directory.GetCurrentDirectory(), "TestData", $"{file}.parquet");
-        try
-        {
-            return await DataLoader.LoadParquet<ExIndex>(path)
-                .ContinueWith(t => t.Result
-                    .Where(p => dateFilter?.Invoke(p.Date) ?? true)
-                    .Select(p => (double)p.Close));
-        }
-        catch (Exception exc)
-        {
-            //motivation: file contains either ExIndex or ExOhlc => if the first fails, try with the last one.
-            return await DataLoader.LoadParquet<ExOhlc>(path)
-                .ContinueWith(t => t.Result
-                    .Where(p => dateFilter?.Invoke(p.Date) ?? true)
-                    .Select(p => (double)p.Close));
-        }
     }
 
     private static IEnumerable<double> GetLogarithmicReturns(IEnumerable<double> prices)

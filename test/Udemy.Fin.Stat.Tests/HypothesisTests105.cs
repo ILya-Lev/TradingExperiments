@@ -14,7 +14,7 @@ public class HypothesisTests105(ITestOutputHelper output)
         var source = $"S&P500 {from}-{to}";
         var filter = (DateOnly d) => from <= d && d <= to;
         
-        var closePrices = await LoadData("GSPC", filter).ContinueWith(t => t.Result.ToArray());
+        var closePrices = await DemoHelpers.LoadClosePrices("GSPC", filter).ContinueWith(t => t.Result.ToArray());
         
         var logReturns = closePrices.Skip(1).Zip(closePrices.SkipLast(1), (n, c) => Math.Log(n) - Math.Log(c)).ToArray();
         var logReturnsInfo = DemoHelpers.PlotSeries(source, "log returns", logReturns);
@@ -39,25 +39,4 @@ public class HypothesisTests105(ITestOutputHelper output)
         output.WriteLine($"Mcleod-Li test statistic {squaredQStat:N4}; p-value {mlValue:N4}");
 
     }
-
-    private static async Task<IEnumerable<double>> LoadData(string file, Func<DateOnly, bool>? dateFilter = null)
-    {
-        var path = Path.Combine(Directory.GetCurrentDirectory(), "TestData", $"{file}.parquet");
-        try
-        {
-            return await DataLoader.LoadParquet<ExIndex>(path)
-                .ContinueWith(t => t.Result
-                    .Where(p => dateFilter?.Invoke(p.Date) ?? true)
-                    .Select(p => (double)p.Close));
-        }
-        catch (Exception exc)
-        {
-            //motivation: file contains either ExIndex or ExOhlc => if the first fails, try with the last one.
-            return await DataLoader.LoadParquet<ExOhlc>(path)
-                .ContinueWith(t => t.Result
-                    .Where(p => dateFilter?.Invoke(p.Date) ?? true)
-                    .Select(p => (double)p.Close));
-        }
-    }
-
 }

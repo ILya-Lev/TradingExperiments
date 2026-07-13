@@ -60,4 +60,24 @@ public class DemoHelpers
 
         return plot.SaveSvg(chartPath, 1980, 1020);
     }
+
+    public static async Task<IEnumerable<double>> LoadClosePrices(string file, Func<DateOnly, bool>? dateFilter = null)
+    {
+        var path = Path.Combine(Directory.GetCurrentDirectory(), "TestData", $"{file}.parquet");
+        try
+        {
+            return await DataLoader.LoadParquet<ExIndex>(path)
+                .ContinueWith(t => t.Result
+                    .Where(p => dateFilter?.Invoke(p.Date) ?? true)
+                    .Select(p => (double)p.Close));
+        }
+        catch (Exception exc)
+        {
+            //motivation: file contains either ExIndex or ExOhlc => if the first fails, try with the last one.
+            return await DataLoader.LoadParquet<ExOhlc>(path)
+                .ContinueWith(t => t.Result
+                    .Where(p => dateFilter?.Invoke(p.Date) ?? true)
+                    .Select(p => (double)p.Close));
+        }
+    }
 }
