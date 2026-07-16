@@ -63,6 +63,4 @@ public class ProbabilityPlotBuilderTests(ITestOutputHelper output)
         var info = DemoHelpers.PlotSeries($"S&P500 {startStr} - {endStr} probability plot", points, false);
         output.WriteLine(info.Path);
     }
-
-
 }
