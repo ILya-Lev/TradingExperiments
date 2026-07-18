@@ -10,4 +10,6 @@ Console.WriteLine("Performance test suit");
 //BenchmarkRunner.Run<PolynomialCalculatorPerformance>();
 
 //BenchmarkRunner.Run<CoinTossingStateGeneratorPerformance>();
-BenchmarkRunner.Run<AutoCorrelationFunctionPerformance>();
+//BenchmarkRunner.Run<AutoCorrelationFunctionPerformance>();
+//BenchmarkRunner.Run<VarianceTensorPrimitiveVsLoopPerformance>();
+BenchmarkRunner.Run<WeightedMeanTensorPrimitiveVsLoopPerformance>();
