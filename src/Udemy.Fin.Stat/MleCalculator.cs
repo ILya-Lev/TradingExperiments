@@ -12,9 +12,9 @@ public readonly record struct StudentParameters(double Mu, double Rho, double Nu
 
 public static class StudentParametersExtensions
 {
-    public static double GetDelta(this StudentParameters lhs, StudentParameters rhs) 
-        => Math.Abs(lhs.Mu - rhs.Mu) 
-           + Math.Abs(lhs.Rho - rhs.Rho) 
+    public static double GetDelta(this StudentParameters lhs, StudentParameters rhs)
+        => Math.Abs(lhs.Mu - rhs.Mu)
+           + Math.Abs(lhs.Rho - rhs.Rho)
            + Math.Abs(lhs.Nu - rhs.Nu);
 }
 
@@ -57,7 +57,7 @@ public class StudentParametersBuilder
 /// Python tools for Estimation in Univariate Modelling converted to C#[cite: 2].
 /// Contains procedures MLE_StudentT and EM_NormalMixture[cite: 1].
 /// </summary>
-public class MleCalculator(ILogger<MleCalculator> logger)
+public class MleCalculator(ILogger<MleCalculator>? logger)
 {
     /// <summary>
     /// Calculates the maximum likelihood estimators for the parameters of a Student t distribution[cite: 1].
@@ -67,92 +67,102 @@ public class MleCalculator(ILogger<MleCalculator> logger)
         const double tolerance = 1e-6;
 
         var stats = initial ?? StudentParametersBuilder.FromMom(points);
-        
-        logger?.LogInformation($"{"Iteration",10}|{"Mu",20}|{"Rho",20}|{"Nu",20}");
-        logger?.LogInformation($"{0,10}|{stats.Mu,20:g4}|{stats.Rho,20:g4}|{stats.Nu,20:g4}");
 
-        for (double delta = 1.0, iteration= 1.0; delta > tolerance; iteration++)
+        logger?.LogInformation($"{"Iteration",10}|{"Mu",20}|{"Rho",20}|{"Nu",20}|{"Delta",20}");
+        logger?.LogInformation($"{0,10}|{stats.Mu,20:g4}|{stats.Rho,20:g4}|{stats.Nu,20:g4}|{0,20}");
+
+        for (double delta = 1.0, iteration = 1.0; delta > tolerance; iteration++)
         {
             var oldStats = stats with { };
 
             // E-step
-            var w = new double[points.Length];
-            var q = new double[points.Length];
-
-            for (var i = 0; i < points.Length; i++)
-            {
-                var delta2 = Math.Pow(points[i] - oldStats.Mu, 2) / Math.Pow(stats.Rho, 2);
-                w[i] = (oldStats.Nu + 1.0) / (oldStats.Nu + delta2);
-                q[i] = SpecialFunctions.DiGamma((oldStats.Nu + 1.0) / 2.0) - Math.Log((oldStats.Nu + delta2) / 2.0);
-            }
+            var (weights, averageQsubW) = GetWeights(points, oldStats, stats);
 
             // M-step
-            stats = UpdateMu(points, w, stats);
-            stats = UpdateRho(points, w, stats);
-            
-            var term = q.Zip(w, (qi, wi) => qi - wi).Sum() / q.Length;
-            (oldStats, stats) = UpdateNu(term, oldStats, stats);
+            var mu = UpdateMu(points, weights);
+            var rho = UpdateRho(points, weights, mu);
+            var (currentNu, nextNu) = UpdateNu(averageQsubW, oldStats.Nu);
 
-            logger?.LogInformation($"{iteration,10}|{stats.Mu,20:g4}|{stats.Rho,20:g4}|{stats.Nu,20:g4}");
+            oldStats = oldStats with { Nu = currentNu };
+            stats = new StudentParameters(Mu: mu, Rho: rho, Nu: nextNu);
+
             delta = stats.GetDelta(oldStats);
+
+            logger?.LogInformation($"{iteration,10}|{stats.Mu,20:g4}|{stats.Rho,20:g4}|{stats.Nu,20:g4}|{delta,20:g4}");
         }
 
         return stats;
     }
 
-    private (StudentParameters oldStats, StudentParameters stats) UpdateNu(
-        double term
-        , StudentParameters oldStats
-        , StudentParameters stats)
+    private static (double[] weights, double averageDif) GetWeights(double[] points,
+        StudentParameters oldStats, StudentParameters stats)
+    {
+        var w = new double[points.Length];
+        var totalQsubW = 0.0;
+
+        for (var i = 0; i < points.Length; i++)
+        {
+            var delta2 = Math.Pow(points[i] - oldStats.Mu, 2) / Math.Pow(stats.Rho, 2);
+
+            w[i] = (oldStats.Nu + 1.0) / (oldStats.Nu + delta2);
+
+            totalQsubW += SpecialFunctions.DiGamma((oldStats.Nu + 1.0) / 2.0)
+                          - Math.Log((oldStats.Nu + delta2) / 2.0)
+                          - w[i];
+        }
+
+        return (w, totalQsubW / points.Length);
+    }
+
+    private (double oldNu, double newNu) UpdateNu(double averageQsubW, double nu)
     {
         // Root-finding algorithm to update nu (part of the M-step)
         const double newtonTolerance = 1e-6;
-        
-        double F(double val) => Math.Log(val / 2.0) + 1.0 - SpecialFunctions.DiGamma(val / 2.0) + term;
+
+        double F(double val) => Math.Log(val / 2.0) + 1.0 - SpecialFunctions.DiGamma(val / 2.0) + averageQsubW;
 
         double FPrime(double val) => 1.0 / val - (PsiPrime(val / 2.0) ?? 0) / 2.0;
 
-        var nuOld = oldStats.Nu;
-        var nuNew = oldStats.Nu - F(oldStats.Nu) / FPrime(oldStats.Nu);
+        var current = nu;
+        var next = nu - F(nu) / FPrime(nu);
 
-        while (Math.Abs(nuNew - nuOld) > newtonTolerance)
+        while (Math.Abs(next - current) > newtonTolerance)
         {
-            nuOld = nuNew;
-            nuNew = nuOld - F(nuOld) / FPrime(nuOld);
+            current = next;
+            next = current - F(current) / FPrime(current);
         }
 
-        return (oldStats with { Nu = nuOld }, stats with { Nu = nuNew });
+        return (current, next);
     }
 
     /// <summary>
     /// benchmark shows loop is the fastest out of 3 approaches - loop, linq, tensor primitives
     /// </summary>
-    private static StudentParameters UpdateRho(double[] points, double[] w, StudentParameters stats)
+    private static double UpdateRho(double[] points, double[] w, double mu)
     {
         var s3 = 0.0;
         for (int i = 0; i < points.Length; i++)
         {
-            s3 += w[i] * (points[i] - stats.Mu) * (points[i] - stats.Mu);
+            s3 += w[i] * (points[i] - mu) * (points[i] - mu);
         }
-        stats = stats with { Rho = Math.Sqrt(s3 / points.Length) };
-        return stats;
+        return Math.Sqrt(s3 / points.Length);
     }
 
     /// <summary>
     /// benchmark shows tensor primitives is the fastest out of 3 approaches - loop, linq, tensor primitives
     /// </summary>
-    private static StudentParameters UpdateMu(double[] points, double[] w, StudentParameters stats)
+    private static double UpdateMu(double[] points, double[] w)
     {
         var totalWeight = TensorPrimitives.Sum(w);
         var weightedPoints = TensorPrimitives.Dot(points, w);
-        return stats with { Mu = weightedPoints / totalWeight };
+        return weightedPoints / totalWeight;
     }
 
     /// <summary>
     /// Fits a normal mixture distribution to data, using a constrained version of the EM algorithm[cite: 1].
     /// </summary>
     public (double[] Alpha, double[] Mu, double[] Sigma, double LogLikelihood)? EmNormalMixture(
-        IReadOnlyList<double> points, int size = 2, double epsilon = 0.1, double c = 0.1, int startLength = 100, int verbose = 0,
+        IReadOnlyList<double> points, int size = 2, double epsilon = 0.1, double c = 0.1, int startLength = 100,
         double[]? initAlpha = null, double[]? initMu = null, double[]? initSigma = null) //[cite: 1, 2]
     {
         int n = points.Count;
@@ -206,16 +216,16 @@ public class MleCalculator(ILogger<MleCalculator> logger)
                     sigma[k] = Random.Shared.NextDouble() * stdRange + 0.1 * stdRange;
                 }
 
-                if (verbose > 0) logger?.LogInformation($"Start iteration {m + 1}");
+                logger?.LogDebug($"Start iteration {m + 1}");
 
                 double[][] results;
                 try
                 {
-                    results = ConstrainedEm(points, alpha, mu, sigma, epsilon, c, Math.Max(verbose - 2, 0), 0.001);
+                    results = ConstrainedEm(points, alpha, mu, sigma, epsilon, c, 0.001);
                 }
                 catch (Exception ex)
                 {
-                    logger?.LogInformation("Iteration aborted\n" + ex.Message);
+                    logger?.LogWarning("Iteration aborted\n" + ex.Message);
                     continue;
                 }
 
@@ -238,7 +248,7 @@ public class MleCalculator(ILogger<MleCalculator> logger)
         }
 
         logger?.LogInformation("Main Run");
-        double[][] finalParams = ConstrainedEm(points, parameters[arg][0], parameters[arg][1], parameters[arg][2], epsilon, c, Math.Max(verbose - 1, 0), 0.000001);
+        double[][] finalParams = ConstrainedEm(points, parameters[arg][0], parameters[arg][1], parameters[arg][2], epsilon, c, 0.000001);
 
         logger?.LogInformation("Final Results:");
 
@@ -263,7 +273,7 @@ public class MleCalculator(ILogger<MleCalculator> logger)
             }
             catch (ArgumentException)
             {
-                logger?.LogInformation("Warning: log likelihood calculation failed");
+                logger?.LogWarning("log likelihood calculation failed");
                 continue;
             }
         }
@@ -273,7 +283,7 @@ public class MleCalculator(ILogger<MleCalculator> logger)
         return (finalParams[0], finalParams[1], finalParams[2], finalSum); //[cite: 1, 2]
     }
 
-    private double[][] ConstrainedEm(IReadOnlyList<double> points, double[] alpha, double[] mu, double[] sigma, double epsilon = 0.1, double c = 0.1, int verbose = 0, double tolerance = 0.000001)
+    private double[][] ConstrainedEm(IReadOnlyList<double> points, double[] alpha, double[] mu, double[] sigma, double epsilon = 0.1, double c = 0.1, double tolerance = 0.000001)
     {
         int n = points.Count;
         int size = alpha.Length;
@@ -284,11 +294,8 @@ public class MleCalculator(ILogger<MleCalculator> logger)
 
         int iteration = 0;
 
-        if (verbose > 0)
-        {
-            // Output formatting logic omitted for extreme brevity, follows identical structure to main method[cite: 2]
-            logger?.LogInformation($"Iteration {iteration} started...");
-        }
+        // Output formatting logic omitted for extreme brevity, follows identical structure to main method[cite: 2]
+        logger?.LogDebug($"Iteration {iteration} started...");
 
         double[,] weights = new double[size, n];
         double[,] normalPdf = new double[size, n];
@@ -337,7 +344,7 @@ public class MleCalculator(ILogger<MleCalculator> logger)
 
             // M-step[cite: 2]
             a = Enumerable.Range(0, size).Select(k => Enumerable.Range(0, n).Sum(i => weights[k, i])).ToArray();
-            
+
             bool[] boolIndex = new bool[size]; Array.Fill(boolIndex, true);
             bool[] activeIndex = new bool[size]; Array.Fill(activeIndex, true);
             int alphaIters = 0;
@@ -362,7 +369,7 @@ public class MleCalculator(ILogger<MleCalculator> logger)
                 activeIndex = activeIndex.Zip(boolIndex, (ai, bi) => ai && bi).ToArray();
             }
 
-            if (alphaIters >= 1000) logger?.LogInformation("Warning: alpha constraints aborted, too many iterations");
+            if (alphaIters >= 1000) logger?.LogWarning("alpha constraints aborted, too many iterations");
 
             muNew = Enumerable.Range(0, size).Select(k => points.Select((p, i) => weights[k, i] * p).Sum() / a[k]).ToArray();
 
@@ -485,7 +492,7 @@ public class MleCalculator(ILogger<MleCalculator> logger)
         //TensorPrimitives.Exp(buffer, buffer); //exp(-(x - mu / sigma) ^ 2/2)
         //TensorPrimitives.Divide(buffer, sigma, buffer);//exp(-(x - mu / sigma) ^ 2/2) / sigma
         //TensorPrimitives.Multiply(buffer, alpha, buffer);//exp(-(x - mu / sigma) ^ 2/2) / sigma * alpha
-        
+
         //return TensorPrimitives.Sum(buffer) / Math.Sqrt(2.0 * Math.PI);
 
         double sum = 0.0;
@@ -502,7 +509,7 @@ public class MleCalculator(ILogger<MleCalculator> logger)
     {
         if (x <= 0)
         {
-            logger?.LogInformation("digamma argument must be > 0");
+            logger?.LogWarning("digamma argument must be > 0");
             return null;
         }
 
