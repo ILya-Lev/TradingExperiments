@@ -8,7 +8,9 @@ public class BondYieldCalculatorTests(ITestOutputHelper output)
     [Fact]
     public void GetCashFlow_4Y10k6pAnnually_Observe()
     {
-        var bond = new Bond(10_000, 0.06m, 1, 0, 1, 4);
+        var bond = new Bond(4, 10_000, 
+            0.06m, 1, 
+            0, 1);
         
         var cashFlow = bond.GetCashFlow().ToArray();
         
@@ -18,7 +20,9 @@ public class BondYieldCalculatorTests(ITestOutputHelper output)
     [Fact]
     public void GetPrice_4Y10k6pAnnually_Observe()
     {
-        var bond = new Bond(10_000, 0.06m, 1, 0, 1, 4);
+        var bond = new Bond(4, 10_000, 
+            0.06m, 1, 
+            0, 1);
         var bonds = new[]{4, 5, 6, 7, 8}.Select(y => bond with { Yield = y / 100m }).ToArray();
         
         var prices = bonds.Select(b => b.GetPrice()).ToArray();
@@ -33,7 +37,9 @@ public class BondYieldCalculatorTests(ITestOutputHelper output)
     [Fact]
     public void GetPrice_2Y10k5pAnnually7pYield_DifferentCompounding()
     {
-        var annualBond = new Bond(10_000, 0.05m, 1, 0.07m, 1, 2);
+        var annualBond = new Bond(2, 10_000, 
+            0.05m, 1, 
+            0.07m, 1);
         var bonds = new[] { 1, 2, 4 }.Select(k => annualBond with { YieldCompounding = k }).ToArray();
 
         var prices = bonds.Select(b => b.GetPrice()).ToArray();
@@ -48,7 +54,9 @@ public class BondYieldCalculatorTests(ITestOutputHelper output)
     [Fact]
     public void GetPrice_2Y25k4p_DifferentCompounding_CommensuratingYields()
     {
-        var annualBond = new Bond(25_000, 0.04m, 1, 0.02m, 1, 2);
+        var annualBond = new Bond(2, 25_000, 
+            0.04m, 1, 
+            0.02m, 1);
         var compoundings = new[] { 1, 2, 4 };
         var yields = new[] { 2, 4, 6, }.Select(y => y / 100m);
 
@@ -73,9 +81,65 @@ public class BondYieldCalculatorTests(ITestOutputHelper output)
     }
 
     [Fact]
+    public void GetPrice_2Y20k7cp4yp_SemiannuallyBoth_Observe()
+    {
+        var semiannualBond = new Bond(2, 20_000, 
+            0.07m, 2,
+            0.04m, 2);
+
+        var price = semiannualBond.GetPrice();
+
+        price.Should().BeApproximately(21142.32m, 1e-2m);
+    }
+
+    [Fact]
+    public void GetPrice_3Y20k2cp45yp_SemiannuallyBoth_Observe()
+    {
+        var semiannualBond = new Bond(3, 20_000, 
+            0.02m, 2,
+            0.045m, 2);
+
+        var price = semiannualBond.GetPrice();
+
+        price.Should().BeApproximately(18611.38m, 1e-2m);
+    }
+
+    [Fact]
+    public void GetPrice_2Y25k4cp_YieldRange_MatchingCompounding_Observe()
+    {
+        var protoBond = new Bond(2, 25_000, 
+            0.04m, 2,
+            0.045m, 2);
+
+        var compoundings = new[] { 1, 2, 4 };
+        var yields = new[] { 2, 4, 6 }.Select(y => y / 100m);
+
+        var prices = compoundings.SelectMany(k => yields.Select(y => protoBond with
+            {
+                CouponCompounding = k,
+                YieldCompounding = k,
+                Yield = y
+            }))
+            .Select(b => b.GetPrice())
+            .ToArray();
+
+        //when we have both coupon and yield percentage and compounding matching, price coincides with face value
+        prices.Should().BeEquivalentTo(
+            [
+                25970.7804m, 25000m, 24083.3036m, 25975.4913m, 25000m, 24070.7253m, 25977.8699m, 25000m, 24064.2593m
+            ],
+            options => options
+                .WithStrictOrdering()
+                .Using<decimal>(ctx => ctx.Subject.Should().BeApproximately(ctx.Expectation, 1e-4m))
+                .WhenTypeIs<decimal>());
+    }
+
+    [Fact]
     public void GetPrice_3Y100nv4pAnnually_PlotRangeOfYields()
     {
-        var annualBond = new Bond(100, 0.04m, 1, 0.01m, 1, 3);
+        var annualBond = new Bond(3, 100, 
+            0.04m, 1,
+            0.01m, 1);
         var coupon = new[] { 2, 4, 6 }.Select(c => c / 100m);
         var yields = Enumerable.Range(1, 10).Select(y => y / 100m);
 

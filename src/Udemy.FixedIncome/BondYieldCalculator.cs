@@ -1,12 +1,12 @@
 ﻿namespace Udemy.FixedIncome;
 
 public readonly record struct Bond(
+    decimal MaturityYears,
     decimal FaceValue,
     decimal CouponPercentage,
     int CouponCompounding,
     decimal Yield,
-    int YieldCompounding,
-    decimal MaturityYears);
+    int YieldCompounding);
 
 public static class BondYieldCalculator
 {
