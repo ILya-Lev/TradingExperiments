@@ -1,4 +1,5 @@
 ﻿using FluentAssertions;
+using FluentAssertions.Execution;
 using ScottPlot;
 
 namespace Udemy.FixedIncome.Tests;
@@ -155,6 +156,41 @@ public class BondYieldCalculatorTests(ITestOutputHelper output)
             var info = PlotSeries($"bond per yield for {couponPercentage}% coupon", pricePerYield, false);
             output.WriteLine(info.Path);
         }
+    }
+
+    [Fact]
+    public void GetYieldAnnually_GovBondsP1_Observe()
+    {
+        var faceValue = 500_000;
+        var dirtyPrice = 472_657.5;
+        var couponPercents = 0.02;
+        var maturity = new DateOnly(2022, 03, 15);
+        var evaluationDate = new DateOnly(2018, 06, 20);
+
+        var y = BondYieldCalculator.GetYieldAnnually(dirtyPrice, faceValue, couponPercents, maturity, evaluationDate);
+        y.Should().BeApproximately(0.03749, 1e-5);
+
+        var calculatedDirtyPrice = BondYieldCalculator.GetDirtyPriceAnnually(faceValue, couponPercents, y, maturity, evaluationDate);
+        calculatedDirtyPrice.Should().BeApproximately(dirtyPrice, 1e-1);
+    }
+
+    [Fact]
+    public void GetDirtyPriceSemiannually_GovBondsP2_Observe()
+    {
+        var faceValue = 20_000;
+        var couponPercents = 0.05;
+        var yieldPercents = 0.035;
+        var maturity = new DateOnly(2021, 07, 15);
+        var evaluationDate = new DateOnly(2020, 09, 25);
+
+        var dirtyPrice = BondYieldCalculator.GetDirtyPriceSemiannually(faceValue, couponPercents, yieldPercents, maturity, evaluationDate);
+        var accruedInterest = BondYieldCalculator.GetAccruedInterestSemiannually(faceValue, couponPercents, maturity, evaluationDate);
+        var cleanPrice = dirtyPrice - accruedInterest;
+        
+        using var _ = new AssertionScope();
+        dirtyPrice.Should().BeApproximately(20_430.53, 1e-2);
+        cleanPrice.Should().BeApproximately(20_234.88, 1e-2);
+        accruedInterest.Should().BeApproximately(195.65, 1e-2);
     }
 
     public static SavedImageInfo PlotSeries(string sourceName
