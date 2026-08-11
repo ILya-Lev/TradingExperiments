@@ -206,6 +206,27 @@ public class BondYieldCalculatorTests(ITestOutputHelper output)
         d.Should().BeApproximately(0.01_982, 1e-4);
     }
 
+    [Fact]
+    public void GetPrice_CollaredSemiannuallyFloatingRateNote_Example2()
+    {
+        var rs = new[] { 3.8, 3.6, 3.0, 2.4 };
+        var cap = 4;
+        var floor = 2.5;
+        var spread = 0.5;
+
+        var collaredInterestRates = rs.Select(r => r + spread)
+            .Select(r => Math.Min(cap, r))
+            .Select(r => Math.Max(floor, r))
+            .Select(r => r/200.0)//as semiannually and to convert from % to decimals
+            .ToArray();
+
+        var p = collaredInterestRates.Select((c, i) => c * Math.Pow(1 + rs[i]/200.0, -(i+1))).Sum()
+            + Math.Pow(1 + rs.Last() / 200.0, -rs.Length)
+            ;
+
+        p.Should().BeApproximately(1.02_29, 1e-4);
+    }
+
     public static SavedImageInfo PlotSeries(string sourceName
         , IReadOnlyCollection<(decimal x, decimal y)> series
         , bool addDiagonal = true)
