@@ -55,6 +55,25 @@ public static class BondYieldCalculator
         return y;
     }
 
+    public static double GetYieldAnnually(
+        double dirtyPrice,
+        double faceValue,
+        double couponPercents,
+        int maturityInYears,
+        int compoundingFrequency = 1)
+    {
+        var m = compoundingFrequency;
+        var c = couponPercents;
+
+        // 0 = A(y) - B
+        Func<double, double> dirtyPriceEquation = y
+            => faceValue * (c / y + (1 - c / y) * Math.Pow(1 + y / m, -maturityInYears * m))
+               - dirtyPrice;
+
+        var y = Secant.FindRoot(dirtyPriceEquation, 0.01, 0.05, 0.0, 0.9);
+        return y;
+    }
+
     public static double GetDirtyPriceAnnually(
         double faceValue,
         double couponPercents,

@@ -193,6 +193,19 @@ public class BondYieldCalculatorTests(ITestOutputHelper output)
         accruedInterest.Should().BeApproximately(195.65, 1e-2);
     }
 
+    [Fact]
+    public void GetDiscountMargin_FloatingRateNote_Example1()
+    {
+        var sofr = 0.03_50;
+        var spread = 0.00_50;
+        var c = sofr + spread;
+
+        var y = BondYieldCalculator.GetYieldAnnually(96, 100, c, 3);
+        var d = y - sofr;
+
+        d.Should().BeApproximately(0.01_982, 1e-4);
+    }
+
     public static SavedImageInfo PlotSeries(string sourceName
         , IReadOnlyCollection<(decimal x, decimal y)> series
         , bool addDiagonal = true)
