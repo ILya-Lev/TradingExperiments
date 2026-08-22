@@ -4,6 +4,7 @@ using ScottPlot;
 
 namespace Udemy.FixedIncome.Tests;
 
+[Trait("Category", "Unit")]
 public class BondYieldCalculatorTests(ITestOutputHelper output)
 {
     [Fact]

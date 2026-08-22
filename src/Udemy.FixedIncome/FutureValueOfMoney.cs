@@ -20,3 +20,4 @@ public static class FutureValueOfMoney
         return initialInvestment * Math.Pow(1 + r / compoundingFrequency, j);
     }
 }
+
