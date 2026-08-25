@@ -22,4 +22,24 @@ public static class BondCalculator002
 
         return price;
     }
+
+    public static double GetValueUntilMaturity(
+        double faceValue
+        , double maturityYears
+        , double yearsSincePurchasing
+        , double annualCouponPercentage
+        , double yield //r = const
+        , int compoundingFrequency = 1)
+    {
+        var c = annualCouponPercentage / yield;
+        var g = Math.Pow(1 + yield / compoundingFrequency, compoundingFrequency * yearsSincePurchasing);
+        var d = Math.Pow(1 + yield / compoundingFrequency, -compoundingFrequency * (maturityYears - yearsSincePurchasing));
+        
+        var price = faceValue * (c*(g-d) + d);
+        
+        return price;
+    }
+
+    public static double GetHoldingReturn(double initial, double final, double years)
+        => Math.Pow(final / initial, 1 / years) - 1;
 }
