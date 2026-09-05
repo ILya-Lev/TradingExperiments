@@ -1,4 +1,5 @@
 ﻿using FluentAssertions;
+using FluentAssertions.Execution;
 
 namespace Udemy.FixedIncome.Tests;
 
@@ -205,5 +206,123 @@ public class ForwardInterestRateCalculatorTests(ITestOutputHelper output)
         return2.Should().OnlyContain(h2 => Math.Abs(h2 - interestRates[2]) < 1e-9);
         return3.Should().OnlyContain(h3 => Math.Abs(h3 - interestRates[3]) < 1e-9);
         return6.Should().OnlyContain(h6 => Math.Abs(h6 - interestRates[6]) < 1e-9);
+    }
+
+    [Fact]//lecture 55 problem 2 
+    public void CalculatePnL_RealizedInterestRates_ImpliedInterestRates()
+    {
+        var interestRates = new Dictionary<double, double>()
+        {
+            [1] = 1.05,
+            [2] = 1.23,
+            [3] = 1.42,
+            [4] = 1.57,
+            [5] = 1.72,
+            [6] = 1.85,
+            [7] = 1.93,
+            [8] = 2.02,
+            [9] = 2.11,
+            [10] = 2.14,
+        };
+
+        var highForecastInterestRates = new Dictionary<double, double>() //r (1,T), where T is the key in the dictionary
+        {
+            [2] = 1.55,
+            [3] = 1.83,
+            [4] = 1.92,
+            [5] = 1.99,
+            [6] = 2.05,
+            [7] = 2.11,
+            [8] = 2.15,
+            [9] = 2.19,
+            [10] = 2.23,
+        };
+
+        var lowForecastInterestRates = new Dictionary<double, double>() //r (1,T), where T is the key in the dictionary
+        {
+            [2] = 1.25,
+            [3] = 1.38,
+            [4] = 1.51,
+            [5] = 1.64,
+            [6] = 1.73,
+            [7] = 1.81,
+            [8] = 1.89,
+            [9] = 1.97,
+            [10] = 2.03,
+        };
+
+        var impliedInterestRates = interestRates.Skip(1)    //f (1, T), where T is the key in the dictionary
+            .ToDictionary(p => p.Key, p => 100*(Math.Pow(Math.Pow(1 + p.Value / 100, p.Key) / (1 + interestRates[1] / 100), 1.0/(p.Key-1)) - 1));
+
+        output.WriteLine($"T years: \t{string.Join("\t\t", interestRates.Keys.Skip(1))}");
+        output.WriteLine($"r(T), %: \t{string.Join("\t", interestRates.Values.Skip(1))}");
+        output.WriteLine($"rh(1, T), %: {string.Join("\t", highForecastInterestRates.Values)}");
+        output.WriteLine($"rl(1, T), %: {string.Join("\t", lowForecastInterestRates.Values)}");
+        output.WriteLine($"f(1, T), %: {string.Join("\t", impliedInterestRates.Values.Select(f => f.ToString("N2")))}");
+
+
+        var portfolio = new Dictionary<double, double>()//of zero coupon bonds with maturity = key, face value = value of the dictionary
+        {
+            [3] = 270_000,
+            [5] = 150_000,
+            [7] = 270_000,
+        };
+
+        var assets0 = portfolio.Sum(p => p.Value * Math.Pow(1 + interestRates[p.Key] / 100, -p.Key));
+        var liabilities0 = assets0;//as we borrow tehse funds to purchase these bonds today.
+        var portfolioValue0 = assets0 - liabilities0;//is 0
+
+        var assets1High = portfolio.Sum(p => p.Value * Math.Pow(1 + highForecastInterestRates[p.Key] / 100, -(p.Key-1)));
+        var liabilities1 = liabilities0 * (1 + interestRates[1]/100);//as we borrow for 1 year, annually compounded
+        var portfolioValue1High = assets1High - liabilities1;//expected to be < 0 as interest rates went up and bond prices dropped => out portfolio value dropped
+        
+        var assets1Low = portfolio.Sum(p => p.Value * Math.Pow(1 + lowForecastInterestRates[p.Key] / 100, -(p.Key-1)));
+        var portfolioValue1Low = assets1Low - liabilities1;//expected to be > 0 as interest rates went down and bond prices increased
+
+        output.WriteLine($"assets0 = {assets0}");
+        output.WriteLine($"portfolio value 1 high = {assets1High} - {liabilities1} = {portfolioValue1High}");
+        output.WriteLine($"portfolio value 1 low  = {assets1Low} - {liabilities1} = {portfolioValue1Low}");
+
+        using (var _ = new AssertionScope())
+        {
+            portfolioValue0.Should().BeApproximately(0, 1e-6);
+            portfolioValue1High.Should().BeApproximately(-2_163, 1);
+            portfolioValue1Low.Should().BeApproximately(6_315, 1);
+        }
+        //-------------------------------------------------------------------------------------------
+        //adding 5 year coupon bond paying annual coupons of 3.5% with 450k face value
+        //-------------------------------------------------------------------------------------------
+
+        //bond price = sum of present values of coupon payments + present value of face value
+        var bond0 = GetCouponBondPrice(5, interestRates);
+        var bond1High = GetCouponBondPrice(4, highForecastInterestRates, 1);
+        var bond1Low = GetCouponBondPrice(4, lowForecastInterestRates, 1); 
+        
+        var assets0WithCoupon = assets0 + bond0;
+        var liabilities0WithCoupon = assets0WithCoupon;
+        var portfolioValue0WithCoupon = assets0WithCoupon - liabilities0WithCoupon;
+
+        var assets1WithCouponHigh = assets1High + bond1High + 0.035 * 450_000;//include coupon into the portfolio as an asset
+        var liabilities1WithCoupon = liabilities0WithCoupon * (1 + interestRates[1] / 100);
+        var portfolioValue1WithCouponHigh = assets1WithCouponHigh - liabilities1WithCoupon;
+        
+        var assets1WithCouponLow = assets1Low + bond1Low + 0.035 * 450_000;//include coupon into the portfolio as an asset
+        var portfolioValue1WithCouponLow = assets1WithCouponLow - liabilities1WithCoupon;
+
+        output.WriteLine($"assets0WithCoupon = {assets0WithCoupon}");
+        output.WriteLine($"portfolio value 1 high WithCoupon = {assets1WithCouponHigh} - {liabilities1WithCoupon} = {portfolioValue1WithCouponHigh}");
+        output.WriteLine($"portfolio value 1 low  WithCoupon = {assets1WithCouponLow} - {liabilities1WithCoupon} = {portfolioValue1WithCouponLow}");
+
+        using (var _ = new AssertionScope())
+        {
+            portfolioValue0WithCoupon.Should().BeApproximately(0, 1e-6);
+            portfolioValue1WithCouponHigh.Should().BeApproximately(-2_908, 1);
+            portfolioValue1WithCouponLow.Should().BeApproximately(12_912, 1);
+        }
+
+
+        static double GetCouponBondPrice(int yearsToMaturity, Dictionary<double, double> rates, int shift = 0) =>
+            450_000 * (0.035 * Enumerable.Range(1, yearsToMaturity).Sum(t => Math.Pow(1 + rates[t+shift] / 100, -t))
+                       + Math.Pow(1 + rates[yearsToMaturity] / 100, -yearsToMaturity));
     }
 }
