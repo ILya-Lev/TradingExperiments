@@ -110,4 +110,35 @@ public class BondEstimatorsTests(ITestOutputHelper output)
         }
     }
 
+
+    [Fact]
+    public void ReduceExposure_Long10YBond_Short2YBond()
+    {
+        var longPrice = BondEstimators.GetPriceFlatTerms(10_000_000, 10, 5, 4);
+        var longDuration = BondEstimators.GetDollarDurationFlatTerms(10_000_000, 10, 5, 4);
+
+        var shortDuration = BondEstimators.GetDollarDurationFlatTerms(100, 2, 5, 1.7);
+        var hedgingRatio = - longDuration/ shortDuration;
+
+        var shortPrice = BondEstimators.GetPriceFlatTerms(100*Math.Abs(hedgingRatio), 2, 5, 1.7);
+
+        var initialPortfolioValue = longPrice - shortPrice;
+
+        output.WriteLine($"long price = {longPrice:C2}, duration {longDuration}");
+        output.WriteLine($"short price = {shortPrice:C2}, duration {shortDuration}");
+        output.WriteLine($"hedging ratio {hedgingRatio}");
+        output.WriteLine($"portfolio value {initialPortfolioValue:C2}");
+
+        var drs = new[] { -3, -1, -0.1, 0.1, 1, 3 };
+        foreach (var dr in drs)
+        {
+            var portfolioValue =
+                BondEstimators.GetPriceFlatTerms(10_000_000, 10, 5 + dr, 4)
+                - BondEstimators.GetPriceFlatTerms(100 * Math.Abs(hedgingRatio), 2, 5+dr, 1.7);
+
+            var valueChange = portfolioValue - initialPortfolioValue;
+
+            output.WriteLine($"dr = {dr} %; portfolio value {portfolioValue:C2} and change {valueChange:C2}");
+        }
+    }
 }

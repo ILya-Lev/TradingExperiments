@@ -26,7 +26,7 @@ public static class BondEstimators
         return (
                    coupon / yield / y * (1 - totalDiscountFactor)
                    - maturityYears * coupon / yield * totalDiscountFactor / (1 + y / compoundingFrequency)
-                   + maturityYears * totalDiscountFactor
+                   + maturityYears * totalDiscountFactor / (1 + y / compoundingFrequency)
                )
                * faceValue;
     }
