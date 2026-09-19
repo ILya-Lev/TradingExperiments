@@ -361,7 +361,7 @@ public class BondEstimatorsTests(ITestOutputHelper output)
             (T: 15, F: 650_000, C: 7.0),
             (T: 25, F: 530_000, C: 4.5),
         };
-        
+
         var k = 2;
         var rate = 3.5 / 100.0;
         var drs = new[] { 10, 25, 100, 300 }.SelectMany(dr => new[] { -dr, dr }).OrderBy(dr => dr).ToArray();
@@ -381,13 +381,54 @@ public class BondEstimatorsTests(ITestOutputHelper output)
             var estimatedPortfolioValueChange = -duration * initialPortfolioValue * dr;
             var currentPortfolioValue = portfolioValue(rate + dr);
             var realPortfolioValueChange = currentPortfolioValue - initialPortfolioValue;
-            
+
             output.WriteLine($"dr {dr:P4}; portfolio value {currentPortfolioValue:N4};" +
                              $" estimated change {estimatedPortfolioValueChange:N4};" +
                              $" real change {realPortfolioValueChange:N4};" +
-                             $" estimation error {estimatedPortfolioValueChange/realPortfolioValueChange - 1:N4}");
-            
+                             $" estimation error {estimatedPortfolioValueChange / realPortfolioValueChange - 1:N4}");
+
             Math.Abs(estimatedPortfolioValueChange / realPortfolioValueChange - 1).Should().BeLessThan(.20);
+        }
+    }
+
+    [Fact]
+    public void HedgeWithDuration_Lecture69_Example1_CheckHowEffectiveHedgeIs()
+    {
+        var bond = (T: 10, F: 100_000, C: 4.0);
+        //var hedge = (T: 10, F: ?, C: 0.0);
+        var rate = 6.0 / 100.0;//6%
+        var k = 1;
+        var drs = new[] { 20, 100, 250, 400, 900 };//bps
+
+        var price = (double r, int t, double f, double c) => f * (c / r + Math.Pow(1 + r / k, -k * t) * (1 - c / r));
+        var duration = (double r, int t, double f, double c) => f / price(r, t, f, c)
+            * (Math.Pow(1 + r / k, -k * t - 1) * t * (1 - c / r) + c / r / r * (1 - Math.Pow(1 + r / k, -k * t)));
+
+        var priceBond = price(rate, bond.T, bond.F, bond.C / 100);
+        var durationBond = duration(rate, bond.T, bond.F, bond.C / 100);
+
+        var priceHedge = price(rate, 10, 100, 0);//nominal value for face value
+        var durationHedge = duration(rate, 10, 1, 0);//face value is cancelled out here, when C = 0
+
+        var hedgeRatio = -priceBond * durationBond / priceHedge / durationHedge;
+
+        var hedgeFaceValue = -100 * hedgeRatio;
+        var realPriceHedge = price(rate, 10, hedgeFaceValue, 0);
+
+        var initialPortfolioValue = priceBond - realPriceHedge;
+        output.WriteLine($"bond price {priceBond:N4}; duration {durationBond:N4}");
+        output.WriteLine($"hedge price {priceHedge:N4}; duration {durationHedge:N4}");
+        output.WriteLine($"hedge ratio {hedgeRatio:N4}; real hedge price {realPriceHedge:N4}");
+        output.WriteLine($"r {rate:P}; portfolio value {initialPortfolioValue:N4}; ");
+
+        foreach (var dr in drs.Select(dr => dr / 10_000.0))
+        {
+            var currentPrice = price(rate + dr, bond.T, bond.F, bond.C / 100);
+            var currentHedge = price(rate + dr, 10, hedgeFaceValue, 0);
+            var portfolioValue = currentPrice - currentHedge;
+
+            output.WriteLine($"dr {dr:P4}; portfolio value {portfolioValue:N4}; " +
+                             $" hedged loss {portfolioValue/initialPortfolioValue - 1:P4}; unhedged loss {currentPrice/priceBond - 1:P4}");
         }
     }
 }
