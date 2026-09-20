@@ -1,5 +1,5 @@
 ﻿using FluentAssertions;
-using System.Text.Json;
+using static Udemy.FixedIncome.BondMetricsCalculator;
 
 namespace Udemy.FixedIncome.Tests;
 
@@ -175,18 +175,6 @@ public class BondEstimatorsTests(ITestOutputHelper output)
             output.WriteLine($"dr = {dr} %; portfolio value {portfolioValue:C2} and change {valueChange:C2}");
         }
     }
-
-    private static double GetCouponPayments(double r, int t, double f, double c, int k = 1)
-        => f * c / r * (Math.Pow(1 + r / k, k * t) - 1);
-
-    private static double GetBondPrice(double r, int t, double f, double c = 0, int k = 1)
-        => f * (c / r + Math.Pow(1 + r / k, -k * t) * (1 - c / r));
-
-    private static double GetBondDollarDuration(double r, int t, double f, double c = 0, int k = 1)
-        => f * (Math.Pow(1 + r / k, -k * t - 1) * t * (1 - c / r) + c / r / r * (1 - Math.Pow(1 + r / k, -k * t)));
-
-    private static double GetBondDuration(double r, int t, double f, double c = 0, int k = 1)
-        => GetBondDollarDuration(r, t, f, c, k) / GetBondPrice(r, t, f, c, k);
 
     [Fact]
     public void EstimatePriceChangesWithDuration_TreasuryStrip_ZeroCouponSemiannually()
@@ -441,6 +429,10 @@ public class BondEstimatorsTests(ITestOutputHelper output)
             var holding9 = CalculateHoldingIncomeReturn(r, maturity, faceValue, coupon, 9);
             output.WriteLine($"holding 9 years: {holding9}");
         }
+
+        var duration = GetBondDuration(rate, maturity, faceValue, coupon);
+        var macaulayDuration = GetBondMacaulayDuration(rate, maturity, faceValue, coupon);
+        output.WriteLine($"duration {duration:N4}; Macaulay duration {macaulayDuration:N4}");
     }
 
     private static dynamic CalculateHoldingIncomeReturn(
