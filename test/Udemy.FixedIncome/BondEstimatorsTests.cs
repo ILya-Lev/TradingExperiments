@@ -423,10 +423,13 @@ public class BondEstimatorsTests(ITestOutputHelper output)
         {
             output.WriteLine($"interest rate = {r:N4}");
 
-            var holding5 = CalculateHoldingIncomeReturn(r, maturity, faceValue, coupon, 5);
+            var holding5 = CalculateHoldingIncomeReturn(r, maturity, faceValue, coupon, initialPrice, 5);
             output.WriteLine($"holding 5 years: {holding5}");
 
-            var holding9 = CalculateHoldingIncomeReturn(r, maturity, faceValue, coupon, 9);
+            var holding7 = CalculateHoldingIncomeReturn(r, maturity, faceValue, coupon, initialPrice, 7);
+            output.WriteLine($"holding 7 years: {holding7} - Macaulay duration is 7 years");
+
+            var holding9 = CalculateHoldingIncomeReturn(r, maturity, faceValue, coupon, initialPrice, 9);
             output.WriteLine($"holding 9 years: {holding9}");
         }
 
@@ -437,9 +440,9 @@ public class BondEstimatorsTests(ITestOutputHelper output)
 
     private static dynamic CalculateHoldingIncomeReturn(
         double rate, int maturity, int faceValue, double coupon,
+        double initialPrice,//one cannot calculate initial price here as interest rate is already different!
         int holdingYears)
     {
-        var initialPrice = GetBondPrice(rate, maturity, faceValue, coupon);
         var remainingPrice = GetBondPrice(rate, maturity - holdingYears, faceValue, coupon);
 
         var paidCoupon = GetCouponPayments(rate, holdingYears, faceValue, coupon);
@@ -453,5 +456,35 @@ public class BondEstimatorsTests(ITestOutputHelper output)
             PaidCoupon = Math.Round(paidCoupon, 4),
             HoldingRate = Math.Round(holdingRate, 4)
         };
+    }
+
+    [Fact]
+    public void GetHoldingPeriodReturn_SomeYears_Observe()
+    {
+        var F = 100_000;
+        var c = 11.5/100.0 * F;
+        var y = 6.0/100.0;
+        var dy = 2.0 / 100.0;
+        var k = 1;
+        var T = 10;
+        var t1 = 0;
+        var t2 = 5;
+
+        double N1 = k * (T - t1);
+        double N2 = k * (T - t2);
+        double Nh = k * (t2 - t1);
+
+        // Price at purchase (t1)
+        var P1 = c * (1 - Math.Pow(1 + y, -N1)) / y + F * Math.Pow(1 + y, -N1);
+
+        // Price at sale (t2)
+        var P2 = c * (1 - Math.Pow(1 + y+dy, -N2)) / (y+dy) + F * Math.Pow(1 + y+dy, -N2);
+
+        // Future value of reinvested coupons at t2
+        var FVc = c * (Math.Pow(1 + y+dy, Nh) - 1) / (y+dy);
+
+        // Total Holding Period Return
+        var hpr= Math.Pow((P2 + FVc) / P1, 1.0/Nh) - 1;
+        output.WriteLine($"holding period return {hpr:P}; p1 {P1:N4}; p2 {P2:N4}; coupons {FVc:N4}");
     }
 }
