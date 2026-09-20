@@ -1,5 +1,6 @@
 ﻿namespace Udemy.FixedIncome.Tests;
 
+[Trait("Category", "Unit")]
 public class FutureValueOfMoneyTests(ITestOutputHelper output)
 {
     [Fact]

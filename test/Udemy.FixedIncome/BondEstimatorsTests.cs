@@ -1,4 +1,5 @@
 ﻿using FluentAssertions;
+using System.Text.Json;
 
 namespace Udemy.FixedIncome.Tests;
 
@@ -175,6 +176,18 @@ public class BondEstimatorsTests(ITestOutputHelper output)
         }
     }
 
+    private static double GetCouponPayments(double r, int t, double f, double c, int k = 1)
+        => f * c / r * (Math.Pow(1 + r / k, k * t) - 1);
+
+    private static double GetBondPrice(double r, int t, double f, double c = 0, int k = 1)
+        => f * (c / r + Math.Pow(1 + r / k, -k * t) * (1 - c / r));
+
+    private static double GetBondDollarDuration(double r, int t, double f, double c = 0, int k = 1)
+        => f * (Math.Pow(1 + r / k, -k * t - 1) * t * (1 - c / r) + c / r / r * (1 - Math.Pow(1 + r / k, -k * t)));
+
+    private static double GetBondDuration(double r, int t, double f, double c = 0, int k = 1)
+        => GetBondDollarDuration(r, t, f, c, k) / GetBondPrice(r, t, f, c, k);
+
     [Fact]
     public void EstimatePriceChangesWithDuration_TreasuryStrip_ZeroCouponSemiannually()
     {
@@ -183,7 +196,7 @@ public class BondEstimatorsTests(ITestOutputHelper output)
         var rate = 4.5;//4.5% flat level
         var drs = new[] { 50, 100, 200, 400 }.SelectMany(dr => new[] { -1 * dr, dr }).OrderBy(dr => dr).ToArray();
 
-        var p = (double r) => f * Math.Pow(1 + r / 2.0, -2 * t);
+        var p = (double r) => GetBondPrice(r, t, f, 0, 2);
         var d = (double r) => t / (1 + r / 2.0);
 
         var initialPrice = p(rate / 100);
@@ -208,24 +221,21 @@ public class BondEstimatorsTests(ITestOutputHelper output)
         var f = 450_000;
         var t = 10;
         var c = 6 / 100.0;//6%
-        var rate = 4.5;//4.5% flat level
+        var rate = 4.5 / 100.0;//4.5% flat level
         var drs = new[] { 50, 100, 200, 400 }.SelectMany(dr => new[] { -1 * dr, dr }).OrderBy(dr => dr).ToArray();
 
-        var p = (double r) => f * (c / r + Math.Pow(1 + r / 2.0, -2 * t) * (1 - c / r));
-        var d = (double r) => f / p(r) * (Math.Pow(1 + r / 2.0, -2 * t - 1) * t * (1 - c / r) + c / r / r * (1 - Math.Pow(1 + r / 2.0, -2 * t)));
-
-        var initialPrice = p(rate / 100);
-        var duration = d(rate / 100);
+        var initialPrice = GetBondPrice(rate, t, f, c, 2);
+        var duration = GetBondDuration(rate, t, f, c, 2);
 
         output.WriteLine($"price {initialPrice} and duration {duration}");
 
         foreach (var dr in drs.Select(e => e * 1.0 / 10_000))
         {
             var estimatedPriceChange = -duration * initialPrice * dr;
-            var currentPrice = p(rate / 100 + dr);
+            var currentPrice = GetBondPrice(rate + dr, t, f, c, 2);
             var realPriceChange = currentPrice - initialPrice;
 
-            output.WriteLine($"dr {dr}; estimated {estimatedPriceChange:N4}; real {realPriceChange:N4}; price {currentPrice:N4}; estimation error {estimatedPriceChange / realPriceChange - 1:N4}");
+            output.WriteLine($"dr {dr:P}; estimated {estimatedPriceChange:N4}; real {realPriceChange:N4}; price {currentPrice:N4}; estimation error {estimatedPriceChange / realPriceChange - 1:N4}");
             (estimatedPriceChange / realPriceChange).Should().BeApproximately(1.0, 0.20);
         }
     }
@@ -236,21 +246,18 @@ public class BondEstimatorsTests(ITestOutputHelper output)
         var f = 600_000;
         var t = 20;
         var c = 2 / 100.0;//2%
-        var rate = 4.5;//4.5% flat level
+        var rate = 4.5 / 100.0;//4.5% flat level
         var drs = new[] { 50, 100, 200, 400 }.SelectMany(dr => new[] { -1 * dr, dr }).OrderBy(dr => dr).ToArray();
 
-        var p = (double r) => f * (c / r + Math.Pow(1 + r, -t) * (1 - c / r));
-        var d = (double r) => f / p(r) * (Math.Pow(1 + r, -t - 1) * t * (1 - c / r) + c / r / r * (1 - Math.Pow(1 + r, -t)));
-
-        var initialPrice = p(rate / 100);
-        var duration = d(rate / 100);
+        var initialPrice = GetBondPrice(rate, t, f, c);
+        var duration = GetBondDuration(rate, t, f, c);
 
         output.WriteLine($"price {initialPrice} and duration {duration}");
 
         foreach (var dr in drs.Select(e => e * 1.0 / 10_000))
         {
             var estimatedPriceChange = -duration * initialPrice * dr;
-            var currentPrice = p(rate / 100 + dr);
+            var currentPrice = GetBondPrice(rate + dr, t, f, c);
             var realPriceChange = currentPrice - initialPrice;
 
             output.WriteLine($"dr {dr}; estimated {estimatedPriceChange:N4}; real {realPriceChange:N4}; price {currentPrice:N4}; estimation error {estimatedPriceChange / realPriceChange - 1:N4}");
@@ -264,21 +271,18 @@ public class BondEstimatorsTests(ITestOutputHelper output)
         var f = 1_500_000;
         var t = 30;
         var c = 5.5 / 100.0;//5.5%
-        var rate = 4.5;//4.5% flat level
+        var rate = 4.5 / 100.0;//4.5% flat level
         var drs = new[] { 50, 100, 200, 400 }.SelectMany(dr => new[] { -1 * dr, dr }).OrderBy(dr => dr).ToArray();
 
-        var p = (double r) => f * (c / r + Math.Pow(1 + r / 2.0, -2 * t) * (1 - c / r));
-        var d = (double r) => f / p(r) * (Math.Pow(1 + r / 2.0, -2 * t - 1) * t * (1 - c / r) + c / r / r * (1 - Math.Pow(1 + r / 2.0, -2 * t)));
-
-        var initialPrice = p(rate / 100);
-        var duration = d(rate / 100);
+        var initialPrice = GetBondPrice(rate, t, f, c, 2);
+        var duration = GetBondDuration(rate, t, f, c, 2);
 
         output.WriteLine($"price {initialPrice} and duration {duration}");
 
         foreach (var dr in drs.Select(e => e * 1.0 / 10_000))
         {
             var estimatedPriceChange = -duration * initialPrice * dr;
-            var currentPrice = p(rate / 100 + dr);
+            var currentPrice = GetBondPrice(rate + dr, t, f, c, 2);
             var realPriceChange = currentPrice - initialPrice;
 
             output.WriteLine($"dr {dr}; estimated {estimatedPriceChange:N4}; real {realPriceChange:N4}; price {currentPrice:N4}; estimation error {estimatedPriceChange / realPriceChange - 1:N4}");
@@ -295,12 +299,9 @@ public class BondEstimatorsTests(ITestOutputHelper output)
         var k = 1;
         var rates = new[] { 1, 2, 3, 5, 7, 10, 15, 20 };
 
-        var p = (double r) => f * (c / r + Math.Pow(1 + r / k, -k * t) * (1 - c / r));
-        var d = (double r) => f / p(r) * (Math.Pow(1 + r / k, -k * t - 1) * t * (1 - c / r) + c / r / r * (1 - Math.Pow(1 + r / k, -k * t)));
-
         foreach (var r in rates.Select(r => r / 100.0))
         {
-            var duration = d(r);
+            var duration = GetBondDuration(r, t, f, c, k);
             output.WriteLine($"r {r:P}; duration {duration:N4}");
             duration.Should().BeLessThan(t);
         }
@@ -315,12 +316,9 @@ public class BondEstimatorsTests(ITestOutputHelper output)
         var k = 1;
         var r = 5 / 100.0;//5%
 
-        var p = (double c) => f * (c / r + Math.Pow(1 + r / k, -k * t) * (1 - c / r));
-        var d = (double c) => f / p(c) * (Math.Pow(1 + r / k, -k * t - 1) * t * (1 - c / r) + c / r / r * (1 - Math.Pow(1 + r / k, -k * t)));
-
         foreach (var c in coupons.Select(c => c / 100.0))
         {
-            var duration = d(c);
+            var duration = GetBondDuration(r, t, f, c, k);
             output.WriteLine($"c {c:P}; duration {duration:N4}");
             duration.Should().BeLessThan(t);
         }
@@ -335,15 +333,12 @@ public class BondEstimatorsTests(ITestOutputHelper output)
         var k = 1;
         var rates = new[] { 2, 5, 15 };
 
-        var p = (double r, int t) => f * (c / r + Math.Pow(1 + r / k, -k * t) * (1 - c / r));
-        var d = (double r, int t) => f / p(r, t) * (Math.Pow(1 + r / k, -k * t - 1) * t * (1 - c / r) + c / r / r * (1 - Math.Pow(1 + r / k, -k * t)));
-
         foreach (var r in rates.Select(r => r / 100.0))
         {
             output.WriteLine($"interest rate = {r:P}");
             foreach (var t in maturities)
             {
-                var duration = d(r, t);
+                var duration = GetBondDuration(r, t, f, c, k);
                 output.WriteLine($"\t\tt {t:D2}; duration {duration:N4}");
                 duration.Should().BeLessThan(t);
             }
@@ -366,13 +361,10 @@ public class BondEstimatorsTests(ITestOutputHelper output)
         var rate = 3.5 / 100.0;
         var drs = new[] { 10, 25, 100, 300 }.SelectMany(dr => new[] { -dr, dr }).OrderBy(dr => dr).ToArray();
 
-        var price = (double r, int t, int f, double c) => f * (c / r + Math.Pow(1 + r / k, -k * t) * (1 - c / r));
-        var dollarDuration = (double r, int t, int f, double c) => f * (Math.Pow(1 + r / k, -k * t - 1) * t * (1 - c / r) + c / r / r * (1 - Math.Pow(1 + r / k, -k * t)));
-
-        var portfolioValue = (double r) => portfolio.Sum(bond => price(r, bond.T, bond.F, bond.C));
+        var portfolioValue = (double r) => portfolio.Sum(bond => GetBondPrice(r, bond.T, bond.F, bond.C));
 
         var initialPortfolioValue = portfolioValue(rate);
-        var duration = portfolio.Sum(bond => dollarDuration(rate, bond.T, bond.F, bond.C)) / portfolioValue(rate);
+        var duration = portfolio.Sum(bond => GetBondDollarDuration(rate, bond.T, bond.F, bond.C, k)) / portfolioValue(rate);
 
         output.WriteLine($"initial portfolio value {initialPortfolioValue:N4}; duration {duration:N4}");
 
@@ -394,26 +386,22 @@ public class BondEstimatorsTests(ITestOutputHelper output)
     [Fact]
     public void HedgeWithDuration_Lecture69_Example1_CheckHowEffectiveHedgeIs()
     {
-        var bond = (T: 10, F: 100_000, C: 4.0);
+        var bond = (T: 10, F: 100_000, C: 4.0 / 100.0);
         //var hedge = (T: 10, F: ?, C: 0.0);
         var rate = 6.0 / 100.0;//6%
         var k = 1;
         var drs = new[] { 20, 100, 250, 400, 900 };//bps
 
-        var price = (double r, int t, double f, double c) => f * (c / r + Math.Pow(1 + r / k, -k * t) * (1 - c / r));
-        var duration = (double r, int t, double f, double c) => f / price(r, t, f, c)
-            * (Math.Pow(1 + r / k, -k * t - 1) * t * (1 - c / r) + c / r / r * (1 - Math.Pow(1 + r / k, -k * t)));
+        var priceBond = GetBondPrice(rate, bond.T, bond.F, bond.C);
+        var durationBond = GetBondDuration(rate, bond.T, bond.F, bond.C, k);
 
-        var priceBond = price(rate, bond.T, bond.F, bond.C / 100);
-        var durationBond = duration(rate, bond.T, bond.F, bond.C / 100);
-
-        var priceHedge = price(rate, 10, 100, 0);//nominal value for face value
-        var durationHedge = duration(rate, 10, 1, 0);//face value is cancelled out here, when C = 0
+        var priceHedge = GetBondPrice(rate, 10, 100, 0);//nominal value for face value
+        var durationHedge = GetBondDuration(rate, 10, 1);//face value is cancelled out here, when C = 0
 
         var hedgeRatio = -priceBond * durationBond / priceHedge / durationHedge;
 
         var hedgeFaceValue = -100 * hedgeRatio;
-        var realPriceHedge = price(rate, 10, hedgeFaceValue, 0);
+        var realPriceHedge = GetBondPrice(rate, 10, hedgeFaceValue, 0);
 
         var initialPortfolioValue = priceBond - realPriceHedge;
         output.WriteLine($"bond price {priceBond:N4}; duration {durationBond:N4}");
@@ -423,12 +411,55 @@ public class BondEstimatorsTests(ITestOutputHelper output)
 
         foreach (var dr in drs.Select(dr => dr / 10_000.0))
         {
-            var currentPrice = price(rate + dr, bond.T, bond.F, bond.C / 100);
-            var currentHedge = price(rate + dr, 10, hedgeFaceValue, 0);
+            var currentPrice = GetBondPrice(rate + dr, bond.T, bond.F, bond.C);
+            var currentHedge = GetBondPrice(rate + dr, 10, hedgeFaceValue, 0);
             var portfolioValue = currentPrice - currentHedge;
 
             output.WriteLine($"dr {dr:P4}; portfolio value {portfolioValue:N4}; " +
-                             $" hedged loss {portfolioValue/initialPortfolioValue - 1:P4}; unhedged loss {currentPrice/priceBond - 1:P4}");
+                             $" hedged loss {portfolioValue / initialPortfolioValue - 1:P4}; unhedged loss {currentPrice / priceBond - 1:P4}");
         }
+    }
+
+    [Fact]
+    public void Immunization_HoldingReturn_Bond()
+    {
+        var faceValue = 100_000;
+        var coupon = 11.5 / 100.0;//in %
+        var maturity = 10;//in Years
+        var rate = 6.0 / 100.0;//in %
+
+        var initialPrice = GetBondPrice(rate, maturity, faceValue, coupon);
+        output.WriteLine($"initial price {initialPrice}");
+
+        foreach (var r in new[] { -200, 0, 200 }.Select(dr => rate + dr / 10_000.0))
+        {
+            output.WriteLine($"interest rate = {r:N4}");
+
+            var holding5 = CalculateHoldingIncomeReturn(r, maturity, faceValue, coupon, 5);
+            output.WriteLine($"holding 5 years: {holding5}");
+
+            var holding9 = CalculateHoldingIncomeReturn(r, maturity, faceValue, coupon, 9);
+            output.WriteLine($"holding 9 years: {holding9}");
+        }
+    }
+
+    private static dynamic CalculateHoldingIncomeReturn(
+        double rate, int maturity, int faceValue, double coupon,
+        int holdingYears)
+    {
+        var initialPrice = GetBondPrice(rate, maturity, faceValue, coupon);
+        var remainingPrice = GetBondPrice(rate, maturity - holdingYears, faceValue, coupon);
+
+        var paidCoupon = GetCouponPayments(rate, holdingYears, faceValue, coupon);
+        var holdingPosition = paidCoupon + remainingPrice;
+
+        var holdingRate = Math.Pow(holdingPosition / initialPrice, 1.0 / holdingYears) - 1;
+
+        return new
+        {
+            RemainingPrice = Math.Round(remainingPrice, 4),
+            PaidCoupon = Math.Round(paidCoupon, 4),
+            HoldingRate = Math.Round(holdingRate, 4)
+        };
     }
 }
