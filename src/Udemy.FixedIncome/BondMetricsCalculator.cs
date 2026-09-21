@@ -13,6 +13,10 @@ public static class BondMetricsCalculator
     public static double GetCouponPayments(double r, int t, double f, double c, int k = 1)
         => f * c / r * (Math.Pow(1 + r / k, k * t) - 1);
 
+    public static double GetFaceValue(double r, int t, double p, double c = 0, int k = 1)
+        => p / (c / r + Math.Pow(1 + r / k, -k * t) * (1 - c / r));
+
+
     public static double GetBondPrice(double r, int t, double f, double c = 0, int k = 1)
         => f * (c / r + Math.Pow(1 + r / k, -k * t) * (1 - c / r));
 

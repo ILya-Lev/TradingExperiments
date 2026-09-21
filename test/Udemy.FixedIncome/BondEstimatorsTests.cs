@@ -409,7 +409,7 @@ public class BondEstimatorsTests(ITestOutputHelper output)
     }
 
     [Fact]
-    public void Immunization_HoldingReturn_Bond()
+    public void Immunization_HoldingReturn_Example01()
     {
         var faceValue = 100_000;
         var coupon = 11.5 / 100.0;//in %
@@ -438,6 +438,40 @@ public class BondEstimatorsTests(ITestOutputHelper output)
         output.WriteLine($"duration {duration:N4}; Macaulay duration {macaulayDuration:N4}");
     }
 
+    [Fact]
+    public void Immunization_HoldingReturn_Example02()
+    {
+        var faceValue = 100_000;
+        var maturity = 10;
+        var coupon = 6 / 100.0;
+        var yield = 4 / 100.0;
+
+        var drs = new[] { 0, 50, 200 }
+            .SelectMany(dr => new[] { -dr, dr })
+            .Distinct()
+            .OrderBy(dr => dr)
+            .Select(dr => dr / 10_000.0)
+            .ToArray();
+
+        var macaulayDuration = (int)Math.Round(GetBondMacaulayDuration(yield, maturity, faceValue, coupon), 0);
+        var initialPrice = GetBondPrice(yield, maturity, faceValue, coupon);
+
+        output.WriteLine($"initial rate {yield:P}; price {initialPrice:N4}; Macaulay duration {macaulayDuration} (rounded up)");
+
+        foreach (var dr in drs)
+        {
+            output.WriteLine($"dr {dr:P4}");
+
+            var holding7 = CalculateHoldingIncomeReturn(yield + dr, maturity, faceValue, coupon, initialPrice, 7);
+            var holding = CalculateHoldingIncomeReturn(yield + dr, maturity, faceValue, coupon, initialPrice, macaulayDuration);
+            var holding9 = CalculateHoldingIncomeReturn(yield + dr, maturity, faceValue, coupon, initialPrice, 9);
+
+            output.WriteLine($"holding period 7; {holding7}");
+            output.WriteLine($"holding period {macaulayDuration}; {holding}");
+            output.WriteLine($"holding period 9; {holding9}");
+        }
+    }
+
     private static dynamic CalculateHoldingIncomeReturn(
         double rate, int maturity, int faceValue, double coupon,
         double initialPrice,//one cannot calculate initial price here as interest rate is already different!
@@ -462,8 +496,8 @@ public class BondEstimatorsTests(ITestOutputHelper output)
     public void GetHoldingPeriodReturn_SomeYears_Observe()
     {
         var F = 100_000;
-        var c = 11.5/100.0 * F;
-        var y = 6.0/100.0;
+        var c = 11.5 / 100.0 * F;
+        var y = 6.0 / 100.0;
         var dy = 2.0 / 100.0;
         var k = 1;
         var T = 10;
@@ -478,13 +512,54 @@ public class BondEstimatorsTests(ITestOutputHelper output)
         var P1 = c * (1 - Math.Pow(1 + y, -N1)) / y + F * Math.Pow(1 + y, -N1);
 
         // Price at sale (t2)
-        var P2 = c * (1 - Math.Pow(1 + y+dy, -N2)) / (y+dy) + F * Math.Pow(1 + y+dy, -N2);
+        var P2 = c * (1 - Math.Pow(1 + y + dy, -N2)) / (y + dy) + F * Math.Pow(1 + y + dy, -N2);
 
         // Future value of reinvested coupons at t2
-        var FVc = c * (Math.Pow(1 + y+dy, Nh) - 1) / (y+dy);
+        var FVc = c * (Math.Pow(1 + y + dy, Nh) - 1) / (y + dy);
 
         // Total Holding Period Return
-        var hpr= Math.Pow((P2 + FVc) / P1, 1.0/Nh) - 1;
+        var hpr = Math.Pow((P2 + FVc) / P1, 1.0 / Nh) - 1;
         output.WriteLine($"holding period return {hpr:P}; p1 {P1:N4}; p2 {P2:N4}; coupons {FVc:N4}");
+    }
+
+    [Fact]//major simplification here - parallel shifts in rates shocks - in the real world yield curve is not flat!!!!!
+    public void SinglePaymentLiabilityExample_71_Observe()
+    {
+        var funds = 3_430_000;
+        var rate = 6.5 / 100.0;
+        var horizon = 6;
+        var target = 5_000_000;
+
+        var bonds = new[]
+        {
+            (T: 6, C: 6.5 / 100.0),
+            (T: 12, C: 6.5 / 100.0),
+            (T: 4, C: 6.5 / 100.0),
+            (T: 7, C: 5.25 / 100.0)
+        };
+
+        var acceptedBonds = new List<(int maturity, double coupon, double value)>();
+
+        foreach (var bond in bonds)
+        {
+            var faceValue = GetFaceValue(rate, bond.T, funds, bond.C);
+            var macaulayDuration = (int)Math.Round(GetBondMacaulayDuration(rate, bond.T, faceValue, bond.C), 0);
+            
+            var coupons = GetCouponPayments(rate, macaulayDuration, faceValue, bond.C);
+            var sellPrice = GetBondPrice(rate, bond.T - macaulayDuration, faceValue, bond.C);
+
+            if (macaulayDuration <= horizon && coupons + sellPrice >= target) acceptedBonds.Add((bond.T, bond.C, coupons + sellPrice));
+
+            output.WriteLine($"bond {bond.T} Y with {bond.C:P} coupon; face value {faceValue:N4};" +
+                             $" Macaulay duration {macaulayDuration} Y;" +
+                             $" value at MD: {coupons + sellPrice:N4}; to target {coupons + sellPrice - target:N4}");
+        }
+
+        output.WriteLine("\n\nbonds which meets the time and funds target and is immune to interest rate jumps (at least linear exposure)");
+        foreach (var (t,c,v) in acceptedBonds)
+        {
+            output.WriteLine($"bond with maturity {t} Y and coupon {c:P} gives value {v:N4} ");
+        }
+        output.WriteLine("\n\nmajor simplification here - parallel shifts in rates shocks - in the real world yield curve is not flat!!!!!");
     }
 }
