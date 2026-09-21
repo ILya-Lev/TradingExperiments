@@ -522,7 +522,17 @@ public class BondEstimatorsTests(ITestOutputHelper output)
         output.WriteLine($"holding period return {hpr:P}; p1 {P1:N4}; p2 {P2:N4}; coupons {FVc:N4}");
     }
 
-    [Fact]//major simplification here - parallel shifts in rates shocks - in the real world yield curve is not flat!!!!!
+    /// <summary>
+    /// suppose you have 3_430_000 USD to invest for 6 years at 6.5% interest rate (flat term structure).
+    /// which of the following bonds will you select as an investment instrument to achieve a goal of 5_000_000 in 6 years
+    /// despite any (reasonable) parallel interest rate values shifts?
+    ///
+    /// so there are 2 assumptions: flat interest rate structure and reasonably small parallel shifts of it (+-3-5%)
+    ///
+    /// in the real world yield curve is not flat!
+    /// and does not move as a whole!
+    /// </summary>
+    [Fact]
     public void SinglePaymentLiabilityExample_71_Observe()
     {
         var funds = 3_430_000;
