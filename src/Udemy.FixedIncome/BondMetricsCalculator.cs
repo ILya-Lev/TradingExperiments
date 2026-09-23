@@ -23,6 +23,9 @@ public static class BondMetricsCalculator
     public static double GetBondDollarDuration(double r, int t, double f, double c = 0, int k = 1)
         => f * (Math.Pow(1 + r / k, -k * t - 1) * t * (1 - c / r) + c / r / r * (1 - Math.Pow(1 + r / k, -k * t)));
 
+    public static double GetBondDollarConvexity(double r, int t, double f, double c = 0, int k = 1)
+        => f * (2*c/r/r/r*(1-Math.Pow(1+r/k, -k*t)) - 2*c*t/r/r*Math.Pow(1+r/k, -k*t - 1) - t*(t+1.0/k)*(c/r - 1)*Math.Pow(1+r/k, -k*t-2));
+
     public static double GetBondDuration(double r, int t, double f, double c = 0, int k = 1)
         => GetBondDollarDuration(r, t, f, c, k) / GetBondPrice(r, t, f, c, k);
 

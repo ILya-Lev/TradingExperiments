@@ -572,4 +572,79 @@ public class BondEstimatorsTests(ITestOutputHelper output)
         }
         output.WriteLine("\n\nmajor simplification here - parallel shifts in rates shocks - in the real world yield curve is not flat!!!!!");
     }
+
+    [Fact]
+    public void RateLevelTrading_2Bonds_MaxProfit()
+    {
+        var f1 = 20_000;
+        var t1 = 3;
+        var c1 = 3 / 100.0;
+        
+        var rate = 5 / 100.0;
+        var h = 3;
+
+        var t2 = 20;
+        var c2 = 2 / 100.0;
+
+        var currentPrice1 = GetBondPrice(rate, t1, f1, c1);
+        var duration1 = GetBondDuration(rate, t1, f1, c1);
+        var macaulayDuration1 = GetBondMacaulayDuration(rate, t1, f1, c1);
+
+        var currentNominalPrice2 = GetBondPrice(rate, t2, 100, c2);
+        var scale = currentPrice1 / currentNominalPrice2;
+        var f2 = 100 * scale;
+        var duration2 = GetBondDuration(rate, t2, f2, c2);
+        var macaulayDuration2 = GetBondMacaulayDuration(rate, t2, f2, c2);
+
+        var holdedPrice2 = GetBondPrice(rate - 2/100.0, t2-h, f2, c2);
+        var cumulativeCouponCompounding = (1.03 * 1.03 + 1.03 + 1);
+
+        var holdCurrent = f1 + c1 * f1 * cumulativeCouponCompounding;//as rate drops by 2% from 5 to 3, and there are 3 coupons
+        var switchToLong = holdedPrice2 + c2 * f2 * cumulativeCouponCompounding;
+
+        output.WriteLine(
+            $"""
+             strategy 1 - hold current bond
+                capital in {h} years = {holdCurrent:N4} = face value + coupons reinvested = {f1} + {holdCurrent - f1:N4}
+                
+             strategy 2 - sell current bond and buy the alternative 
+                first one today has price {currentPrice1:N4} and the alternative's nominal price is {currentNominalPrice2:N4} for 100 face value
+                so we can buy {scale:N0} items of the alternative bond today
+                
+                after {h} years we can sell the alternative bond for {holdedPrice2:N4} and accumulate coupons for {switchToLong - holdedPrice2:N4}
+                thus the capital is {switchToLong:N4}
+                
+             current bond's duration {duration1:N4} and Macaulay duration {macaulayDuration1:N4}
+             alternative's  duration {duration2:N4} and Macaulay duration {macaulayDuration2:N4}
+             
+             as we expect the interest rate to fall (from 5% to 3%) 
+             the profitable strategy is to switch from short duration (initial bond) to long duration (the alternative bond),
+             which we proved by the actual calculations.
+             """);
+    }
+
+    [Fact]
+    public void GetConvexity_RepricingVsLinearVsSecondOrderApproximation_Observe()
+    {
+        var maturity = 5;
+        var coupon = 4 / 100.0;
+        var faceValue = 25_000;
+        var rate = 5 / 100.0;
+        var drs = new[] { -100, +100 }.Select(dr => dr / 10_000.0).ToArray();
+
+        var price = GetBondPrice(rate, maturity, faceValue, coupon);
+        var dollarDuration = GetBondDollarDuration(rate, maturity, faceValue, coupon);
+        var convexity = GetBondDollarConvexity(rate, maturity, faceValue, coupon);
+
+        foreach (var dr in drs)
+        {
+            var currentPrice = GetBondPrice(rate + dr, maturity, faceValue, coupon);
+     
+            var actual = currentPrice - price;
+            var linear = -dr * dollarDuration;
+            var secondOrder = -dr * dollarDuration + dr * dr / 2 * convexity;
+
+            output.WriteLine($"dr {dr:P4}, actual {actual:N4}; linear {linear:N4}; second order {secondOrder:N4}");
+        }
+    }
 }
