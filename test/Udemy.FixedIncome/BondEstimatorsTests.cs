@@ -554,7 +554,7 @@ public class BondEstimatorsTests(ITestOutputHelper output)
         {
             var faceValue = GetFaceValue(rate, bond.T, funds, bond.C);
             var macaulayDuration = (int)Math.Round(GetBondMacaulayDuration(rate, bond.T, faceValue, bond.C), 0);
-            
+
             var coupons = GetCouponPayments(rate, macaulayDuration, faceValue, bond.C);
             var sellPrice = GetBondPrice(rate, bond.T - macaulayDuration, faceValue, bond.C);
 
@@ -566,7 +566,7 @@ public class BondEstimatorsTests(ITestOutputHelper output)
         }
 
         output.WriteLine("\n\nbonds which meets the time and funds target and is immune to interest rate jumps (at least linear exposure)");
-        foreach (var (t,c,v) in acceptedBonds)
+        foreach (var (t, c, v) in acceptedBonds)
         {
             output.WriteLine($"bond with maturity {t} Y and coupon {c:P} gives value {v:N4} ");
         }
@@ -579,7 +579,7 @@ public class BondEstimatorsTests(ITestOutputHelper output)
         var f1 = 20_000;
         var t1 = 3;
         var c1 = 3 / 100.0;
-        
+
         var rate = 5 / 100.0;
         var h = 3;
 
@@ -596,7 +596,7 @@ public class BondEstimatorsTests(ITestOutputHelper output)
         var duration2 = GetBondDuration(rate, t2, f2, c2);
         var macaulayDuration2 = GetBondMacaulayDuration(rate, t2, f2, c2);
 
-        var holdedPrice2 = GetBondPrice(rate - 2/100.0, t2-h, f2, c2);
+        var holdedPrice2 = GetBondPrice(rate - 2 / 100.0, t2 - h, f2, c2);
         var cumulativeCouponCompounding = (1.03 * 1.03 + 1.03 + 1);
 
         var holdCurrent = f1 + c1 * f1 * cumulativeCouponCompounding;//as rate drops by 2% from 5 to 3, and there are 3 coupons
@@ -624,7 +624,7 @@ public class BondEstimatorsTests(ITestOutputHelper output)
     }
 
     [Fact]
-    public void GetConvexity_RepricingVsLinearVsSecondOrderApproximation_Observe()
+    public void GetDollarConvexity_RepricingVsLinearVsSecondOrderApproximation_Observe()
     {
         var maturity = 5;
         var coupon = 4 / 100.0;
@@ -634,17 +634,114 @@ public class BondEstimatorsTests(ITestOutputHelper output)
 
         var price = GetBondPrice(rate, maturity, faceValue, coupon);
         var dollarDuration = GetBondDollarDuration(rate, maturity, faceValue, coupon);
-        var convexity = GetBondDollarConvexity(rate, maturity, faceValue, coupon);
+        var dollarConvexity = GetBondDollarConvexity(rate, maturity, faceValue, coupon);
 
         foreach (var dr in drs)
         {
             var currentPrice = GetBondPrice(rate + dr, maturity, faceValue, coupon);
-     
+
             var actual = currentPrice - price;
             var linear = -dr * dollarDuration;
-            var secondOrder = -dr * dollarDuration + dr * dr / 2 * convexity;
+            var secondOrder = -dr * dollarDuration + dr * dr / 2 * dollarConvexity;
 
             output.WriteLine($"dr {dr:P4}, actual {actual:N4}; linear {linear:N4}; second order {secondOrder:N4}");
         }
+    }
+
+    [Fact]
+    public void GetConvexity_RateJump_ActualVsLinearVsSecondOrderChanges()
+    {
+        var compounding = 2;
+        var maturity = 3;
+        var coupon = 4 / 100.0;
+        var faceValue = 10_000;
+        var rate = 6 / 100.0;
+
+
+        var price = GetBondPrice(rate, maturity, faceValue, coupon, compounding);
+        var duration = GetBondDuration(rate, maturity, faceValue, coupon, compounding);
+        var dollarDuration = GetBondDollarDuration(rate, maturity, faceValue, coupon, compounding);
+        var convexity = GetBondConvexity(rate, maturity, faceValue, coupon, compounding);
+        var dollarConvexity = GetBondDollarConvexity(rate, maturity, faceValue, coupon, compounding);
+
+        output.WriteLine($"price {price:N4}; duration {duration:N4}; dollar duration {dollarDuration:N4}" +
+                         $" convexity {convexity:N4}; dollar convexity {dollarConvexity:N4}");
+
+        foreach (var dr in new[] { -200, 200 }.Select(dr => dr / 10_000.0))
+        {
+            var currentPrice = GetBondPrice(rate + dr, maturity, faceValue, coupon, compounding);
+
+            var actual = currentPrice - price;
+            var linear = -duration * price * dr;
+            var secondOrder = linear + convexity / 2 * price * dr * dr;
+
+            output.WriteLine($"dr {dr:P}; actual {actual:N4}; linear {linear:N4}; second order {secondOrder:N4}");
+        }
+    }
+
+    [Fact] //lecture 73 task 3
+    public void GetConvexity_Task3_ActualVsLinearVsSecondOrderChanges()
+    {
+        var maturity = 10;
+        var faceValue = 1_000;
+        var price = 614;
+
+        var rate = Math.Pow(faceValue * 1.0 / price, 1.0 / maturity) - 1;
+
+        var duration = GetBondDuration(rate, maturity, faceValue);
+        var dollarDuration = GetBondDollarDuration(rate, maturity, faceValue);
+        var convexity = GetBondConvexity(rate, maturity, faceValue);
+        var dollarConvexity = GetBondDollarConvexity(rate, maturity, faceValue);
+
+        var rates = new List<double>();
+        for (var up = rate; up <= 0.09; up += 0.01) rates.Add(up);
+        for (var down = rate; down >= 0.009; down -= 0.01) rates.Add(down);
+
+        foreach (var r in rates.Distinct().OrderBy(r => r))
+        {
+            var currentPrice = GetBondPrice(r, maturity, faceValue);
+
+            var actual = currentPrice - price;
+            var linear = -duration * price * (r - rate);
+            var secondOrder = linear + convexity * price / 2 * (r - rate) * (r - rate);
+
+            output.WriteLine($"r {r:P} dr {r - rate:P} actual {actual:N4} linear {linear:N4} second order {secondOrder:N4}");
+        }
+    }
+
+    [Fact]
+    public void GetPortfolioConvexity_Lecture74_Example()
+    {
+        var rate = 5 / 100.0;
+        var bonds = new[]
+        {
+            (T: 10, F: 20_000, C: 0),
+            (T: 3, F: 10_000, C: 3 / 100.0)
+        };
+
+        var dollarConvexity = bonds.Sum(b => GetBondDollarConvexity(rate, b.T, b.F, b.C));
+        var prices = bonds.Select(b => GetBondPrice(rate, b.T, b.F, b.C)).ToArray();
+        var totalPrice = prices.Sum();
+        var convexity = bonds.Zip(prices, (b, p) => GetBondConvexity(rate, b.T, b.F, b.C) * p).Sum() / totalPrice;
+
+        output.WriteLine($"dollar convexity {dollarConvexity:N4} convexity {convexity:N4}");
+    }
+
+    [Fact]
+    public void GetPortfolioConvexity_Lecture74_Task2()
+    {
+        var rate = 2.5 / 100.0;
+        var bonds = new[]
+        {
+            (T: 1, F: 500_000, C: 0),
+            (T: 2, F: 2_000_000, C: 4 / 100.0)
+        };
+
+        var dollarConvexity = bonds.Sum(b => GetBondDollarConvexity(rate, b.T, b.F, b.C, 2));
+        var prices = bonds.Select(b => GetBondPrice(rate, b.T, b.F, b.C, 2)).ToArray();
+        var totalPrice = prices.Sum();
+        var convexity = bonds.Zip(prices, (b, p) => GetBondConvexity(rate, b.T, b.F, b.C, 2) * p).Sum() / totalPrice;
+
+        output.WriteLine($"dollar convexity {dollarConvexity:N4} convexity {convexity:N4}");
     }
 }
