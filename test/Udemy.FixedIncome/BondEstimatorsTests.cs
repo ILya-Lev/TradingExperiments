@@ -1,4 +1,5 @@
 ﻿using FluentAssertions;
+using MathNet.Numerics.LinearAlgebra;
 using static Udemy.FixedIncome.BondMetricsCalculator;
 
 namespace Udemy.FixedIncome.Tests;
@@ -818,5 +819,64 @@ public class BondEstimatorsTests(ITestOutputHelper output)
 
             output.WriteLine($"dr {dr:P}; linear hedging price change {currentLinearPortfolio - linearPortfolio:N4}; second order hedging price change {currentQuadPortfolio - quadPortfolio:N4}");
         }
+    }
+
+    [Fact]
+    public void MaximizeConvexity_KeepDuration_3ZeroBonds()
+    {
+        var rate = 5 / 100.0;
+        var faceValue = 100_000;
+        var maturity = 3;
+        var coupon = 3 / 100.0;
+        var zeroMaturities = new[] { 1, 5, 20 };
+
+        var p = GetBondPrice(rate, maturity, faceValue, coupon);
+        var d = GetBondDuration(rate, maturity, faceValue, coupon);
+        var c = GetBondConvexity(rate, maturity, faceValue, coupon);
+
+        var prices = zeroMaturities.Select(m => GetBondPrice(rate, m)).ToArray();
+        var durations = zeroMaturities.Select(m => GetBondDuration(rate, m)).ToArray();
+        var convexity = zeroMaturities.Select(m => GetBondConvexity(rate, m)).ToArray();
+
+        //simple case - set w2 to zero, fall into "extremes" min and max durations => maximize dispersion
+        //as C = D^2 + D/(1+r) + sigma^2/(1+r)^2 - for a fixed duration, increasing dispersion increases convexity
+
+        var w1 = p * (durations[2] - d) / prices[0] / (durations[2] - durations[0]);
+        var w3 = p * (durations[0] - d) / prices[2] / (durations[0] - durations[2]);
+
+        //var matrix = new double[zeroMaturities.Length, zeroMaturities.Length];
+        //for (var col = 0; col < zeroMaturities.Length; col++)
+        //{
+        //    matrix[0, col] = prices[col];
+        //    matrix[1, col] = prices[col] * durations[col];
+        //    matrix[2, col] = prices[col] * convexity[col];
+        //}
+
+        //var rightSide = new[] { p, p * d, p * c };
+
+        //var solverMatrix = Matrix<double>.Build.DenseOfArray(matrix);
+        //var solverRightSide = Vector<double>.Build.DenseOfArray(rightSide);
+
+        //var solverPortfolioWeights = solverMatrix.Solve(solverRightSide);
+
+        //var weights = solverPortfolioWeights.ToArray();
+        //var portfolioValue = prices.Zip(weights, (p, w) => p * w).Sum();
+
+        output.WriteLine(
+            $"""
+             initial bond: price {p:N4}, duration {d:N4}, convexity {c:N4}
+             zero coupons: 
+                            price {prices[0]:N4}, duration {durations[0]:N4}, convexity {convexity[0]:N4}
+                            price {prices[1]:N4}, duration {durations[1]:N4}, convexity {convexity[1]:N4}
+                            price {prices[2]:N4}, duration {durations[2]:N4}, convexity {convexity[2]:N4}
+                            
+             portfolio weights:
+                            first {w1:N4}, second 0, third {w3:N4}
+                            
+             portfolio value: {prices[0] * w1 + prices[2] * w3:N4}
+             portfolio duration: {(durations[0] * w1 * prices[0] + durations[2] * w3 * prices[2]) / p:N4}
+             portfolio convexity: {(convexity[0] * w1 * prices[0] + convexity[2] * w3 * prices[2]) / p:N4}
+             portfolio dollar convexity: {(convexity[0] * w1 * prices[0] + convexity[2] * w3 * prices[2]):N4}
+             """);
     }
 }
