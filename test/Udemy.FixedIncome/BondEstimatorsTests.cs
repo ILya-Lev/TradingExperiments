@@ -744,4 +744,79 @@ public class BondEstimatorsTests(ITestOutputHelper output)
 
         output.WriteLine($"dollar convexity {dollarConvexity:N4} convexity {convexity:N4}");
     }
+
+    [Fact]
+    public void Compare_DurationHedging_ConvexityHedging()
+    {
+        var rate = 4 / 100.0;
+        var drs = new[] { 100, 300, 500 }.Select(dr => dr / 10_000.0).ToArray();
+
+        var faceValue = 100_000;
+        var maturity = 10;
+        var coupon = 7 / 100.0;
+
+        var d = GetBondDollarDuration(rate, maturity, faceValue, coupon);
+        var c = GetBondDollarConvexity(rate, maturity, faceValue, coupon);
+
+        //duration hedging: phi = -duration/hedge duration
+        var maturity1 = 20;
+        var coupon1 = 2 / 100.0;
+        var defaultFaceValue = 100;
+
+        var d1Candidate = GetBondDollarDuration(rate, maturity1, c: coupon1);
+        var phi = -d / d1Candidate;
+
+        //convexity hedging: a1 and a2: V = p +a1*p1 + a2*p2;
+        var maturity2 = 3;
+
+        var d1 = GetBondDollarDuration(rate, maturity1, c: coupon1);
+        var c1 = GetBondDollarConvexity(rate, maturity1, c: coupon1);
+        var d2 = GetBondDollarDuration(rate, maturity2);
+        var c2 = GetBondDollarConvexity(rate, maturity2);
+
+        /*
+         * 0 = d + a*d1 + b*d2
+         * 0 = c + a*c1 + b*c2
+         *
+         * c/c1 - d/d1 = b * (d2/d1-c2/c1) => b = (c*d1-d*c1)/(d2*c1-c2*d1)
+         * c/c2 - d/d2 = a * (d1/d2-c1/c2) => a = (c*d2-d*c2)/(d1*c2-c1*d2)
+         */
+
+        var scale1 = (c * d2 - d * c2) / (d1 * c2 - c1 * d2);
+        var scale2 = (c * d1 - d * c1) / (d2 * c1 - c2 * d1);
+
+        var price = GetBondPrice(rate, maturity, faceValue, coupon);
+        var linearBondPrice = GetBondPrice(rate, maturity1, phi * defaultFaceValue, coupon1);
+        var quadFirstBondPrice = GetBondPrice(rate, maturity1, scale1 * defaultFaceValue, coupon1);
+        var quadSecondBondPrice = GetBondPrice(rate, maturity2, scale2 * defaultFaceValue);
+
+        var linearPortfolio = price + linearBondPrice;
+        var quadPortfolio = price + quadFirstBondPrice + quadSecondBondPrice;
+
+        output.WriteLine(
+            $"""
+             rate {rate:P}; bond price {price:N4}; 
+             linear hedge: 
+                phi {phi:N4};
+                hedge position {linearBondPrice:N4};
+                    portfolio value {linearPortfolio:N4}
+             second order: 
+                scale 1 {scale1:N4}; scale 2 {scale2:N4}; 
+                hedge positions 1: {quadFirstBondPrice:N4} and 2: {quadSecondBondPrice:N4};
+                    portfolio value {quadPortfolio:N4}
+             """);
+
+        foreach (var dr in drs)
+        {
+            var currentPrice = GetBondPrice(rate + dr, maturity, faceValue, coupon);
+            var currentLinearBondPrice = GetBondPrice(rate + dr, maturity1, phi * defaultFaceValue, coupon1);
+            var currentQuadFirstBondPrice = GetBondPrice(rate + dr, maturity1, scale1 * defaultFaceValue, coupon1);
+            var currentQuadSecondBondPrice = GetBondPrice(rate + dr, maturity2, scale2 * defaultFaceValue);
+
+            var currentLinearPortfolio = currentPrice + currentLinearBondPrice;
+            var currentQuadPortfolio = currentPrice + currentQuadFirstBondPrice + currentQuadSecondBondPrice;
+
+            output.WriteLine($"dr {dr:P}; linear hedging price change {currentLinearPortfolio - linearPortfolio:N4}; second order hedging price change {currentQuadPortfolio - quadPortfolio:N4}");
+        }
+    }
 }
