@@ -69,4 +69,18 @@ public static class BondMetricsCalculator
             prices[0] * rhs / prices[2] / denominator
         );
     }
+
+
+    public static double GetAnnuityPrice(double rate, double maturity, double payment, int k = 1)
+        => payment / rate * (1 - Math.Pow(1 + rate / k, -k * maturity));
+
+    public static (double d, double c) GetAnnuityDurationAndConvexity(double rate, double maturity)//todo: add compounding frequency properly
+    {
+        var factor = maturity / (1 + rate) / (Math.Pow(1 + rate, maturity) - 1);
+        
+        var d = 1 / rate - factor;
+        var c = 2/rate/2 - 2*factor/rate - (maturity+1)/(rate+1);
+        
+        return (d, c);
+    }
 }

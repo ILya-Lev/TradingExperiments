@@ -879,4 +879,48 @@ public class BondEstimatorsTests(ITestOutputHelper output)
              portfolio dollar convexity: {(convexity[0] * w1 * prices[0] + convexity[2] * w3 * prices[2]):N4}
              """);
     }
+
+    [Fact]
+    public void RedingtonConditions_Annuity_2Zeros()
+    {
+        var rate = 4 / 100.0;
+
+        //liability
+        var annualPayment = 100_000;
+        var maturity = 5;
+        
+        //assets, to setup portfolio
+        var m1 = 1;
+        var m2 = 10;
+
+        var p = GetAnnuityPrice(rate, maturity, annualPayment);
+        var (d, c) = GetAnnuityDurationAndConvexity(rate, maturity);
+
+        var p1 = GetBondPrice(rate, m1);
+        var p2 = GetBondPrice(rate, m2);
+
+        var d1 = GetBondDuration(rate, m1);
+        var d2 = GetBondDuration(rate, m2);
+
+        var c1 = GetBondConvexity(rate, m1);
+        var c2 = GetBondConvexity(rate, m2);
+
+        var scale1 = (p*d2 - d*p2)/(p1 * d2 - d1 * p2);
+        var scale2 = (p*d1 - d*p1)/(p2 * d1 - d2 * p1);
+
+        var portfolioConvexity = scale1 * c1 + scale2 * c2;
+
+        output.WriteLine(
+            $"""
+                annuity: price {p:N4} duration {d:N4} convexity {c:N4}
+                
+                zero 1: price {p1:N4} duration {d1:N4} convexity {c1:N4}
+                
+                zero 2: price {p2:N4} duration {d2:N4} convexity {c2:N4}
+                
+                scales: {scale1:N4} and {scale2:N4}
+                
+                portfolio convexity {portfolioConvexity:N4} vs annuity convexity {c:N4}
+            """);
+    }
 }
