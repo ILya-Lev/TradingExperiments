@@ -27,7 +27,7 @@ public static class BondMetricsCalculator
         => GetBondDollarDuration(r, t, f, c, k) / GetBondPrice(r, t, f, c, k);
 
     public static double GetBondMacaulayDuration(double r, int t, double f, double c = 0, int k = 1)
-        => GetBondDuration(r, t, f, c, k) * (1 + r/k);
+        => GetBondDuration(r, t, f, c, k) * (1 + r / k);
 
     public static double GetBondDollarConvexity(double r, int t, double f = 100, double c = 0, int k = 1)
         => f * (2 * c / r / r / r * (1 - Math.Pow(1 + r / k, -k * t)) - 2 * c * t / r / r * Math.Pow(1 + r / k, -k * t - 1) - t * (t + 1.0 / k) * (c / r - 1) * Math.Pow(1 + r / k, -k * t - 2));
@@ -63,7 +63,7 @@ public static class BondMetricsCalculator
         var lhs = -durations[0] * convexity[2] + durations[2] * convexity[0];
         var rhs = durations[0] * convexity[1] - durations[1] * convexity[0];
 
-        return 
+        return
         (
             prices[0] * lhs / prices[1] / denominator,
             prices[0] * rhs / prices[2] / denominator
@@ -74,13 +74,26 @@ public static class BondMetricsCalculator
     public static double GetAnnuityPrice(double rate, double maturity, double payment, int k = 1)
         => payment / rate * (1 - Math.Pow(1 + rate / k, -k * maturity));
 
+    [Obsolete("convexity is wrong here, while duration is correct - why?")]
     public static (double d, double c) GetAnnuityDurationAndConvexity(double rate, double maturity)//todo: add compounding frequency properly
     {
         var factor = maturity / (1 + rate) / (Math.Pow(1 + rate, maturity) - 1);
-        
+
         var d = 1 / rate - factor;
-        var c = 2/rate/2 - 2*factor/rate - (maturity+1)/(rate+1);
-        
+        var c = 2 / rate / rate - 2 * factor / rate - (maturity + 1) / (rate + 1);
+
         return (d, c);
     }
+
+    public static double GetAnnuityDollarDuration(double rate, double maturity, double payment, int k = 1)
+        => payment * Enumerable.Range(1, (int)(maturity * k)).Sum(t => t * Math.Pow(1 + rate / k, -t - 1));
+
+    public static double GetAnnuityDuration(double rate, double maturity, double payment, int k = 1)
+        => GetAnnuityDollarDuration(rate, maturity, payment, k) / GetAnnuityPrice(rate, maturity, payment, k);
+
+    public static double GetAnnuityDollarConvexity(double rate, double maturity, double payment, int k = 1)
+        => payment * Enumerable.Range(1, (int)(maturity * k)).Sum(t => t * (t + 1) * Math.Pow(1 + rate / k, -t - 2));
+
+    public static double GetAnnuityConvexity(double rate, double maturity, double payment, int k = 1)
+        => GetAnnuityDollarConvexity(rate, maturity, payment, k) / GetAnnuityPrice(rate, maturity, payment, k);
 }

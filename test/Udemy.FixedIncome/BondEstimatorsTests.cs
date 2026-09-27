@@ -888,16 +888,17 @@ public class BondEstimatorsTests(ITestOutputHelper output)
         //liability
         var annualPayment = 100_000;
         var maturity = 5;
-        
+
         //assets, to setup portfolio
         var m1 = 1;
         var m2 = 10;
 
         var p = GetAnnuityPrice(rate, maturity, annualPayment);
-        var (d, c) = GetAnnuityDurationAndConvexity(rate, maturity);
+        var d = GetAnnuityDuration(rate, maturity, annualPayment);
+        var c = GetAnnuityConvexity(rate, maturity, annualPayment);
 
-        var p1 = GetBondPrice(rate, m1);
-        var p2 = GetBondPrice(rate, m2);
+        var p1 = GetBondPrice(rate, m1, 1);
+        var p2 = GetBondPrice(rate, m2, 1);
 
         var d1 = GetBondDuration(rate, m1);
         var d2 = GetBondDuration(rate, m2);
@@ -905,10 +906,8 @@ public class BondEstimatorsTests(ITestOutputHelper output)
         var c1 = GetBondConvexity(rate, m1);
         var c2 = GetBondConvexity(rate, m2);
 
-        var scale1 = (p*d2 - d*p2)/(p1 * d2 - d1 * p2);
-        var scale2 = (p*d1 - d*p1)/(p2 * d1 - d2 * p1);
-
-        var portfolioConvexity = scale1 * c1 + scale2 * c2;
+        var phi = (p * d2 - d * p2) / (p1 * d2 - d1 * p2);
+        var psi = (p * d1 - d * p1) / (p2 * d1 - d2 * p1);
 
         output.WriteLine(
             $"""
@@ -918,9 +917,28 @@ public class BondEstimatorsTests(ITestOutputHelper output)
                 
                 zero 2: price {p2:N4} duration {d2:N4} convexity {c2:N4}
                 
-                scales: {scale1:N4} and {scale2:N4}
+                scales: {phi:N4} and {psi:N4} 
                 
-                portfolio convexity {portfolioConvexity:N4} vs annuity convexity {c:N4}
+                portfolio: price {phi * p1 + psi * p2:N4}; duration {phi * d1 + psi * d2:N4} convexity {phi * c1 + psi * c2:N4}
             """);
+
+
+        foreach (var dr in new[] { -3, -2, -1, 0, 1, 2, 3 }.Select(dr => dr / 100.0))
+        {
+            //value of the liabilities in 5 years
+            var liability = annualPayment / (rate + dr) * (Math.Pow(1 + (rate + dr), maturity) - 1);
+
+            //value of the assets in 5 years
+            var assets = phi * p1 * Math.Pow(1 + (rate + dr), maturity - m1)
+                       + psi * p2 * Math.Pow(1 + (rate + dr), maturity - m2);
+
+            var portfolioValueIn5Years = assets - liability;
+
+            output.WriteLine($"dr {dr:P} => rate {rate + dr:P}" +
+                             $" => portfolio value in 5 years: {assets:N4} - {liability:N4} = {portfolioValueIn5Years:N4}");
+        }
+
+        //todo: differs from the lecture results - investigate!
+
     }
 }
