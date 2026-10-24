@@ -1,5 +1,6 @@
 ﻿using FluentAssertions;
 using MathNet.Numerics.LinearAlgebra;
+using MathNet.Numerics.RootFinding;
 using static Udemy.FixedIncome.BondMetricsCalculator;
 
 namespace Udemy.FixedIncome.Tests;
@@ -940,5 +941,53 @@ public class BondEstimatorsTests(ITestOutputHelper output)
 
         //todo: differs from the lecture results - investigate!
 
+    }
+
+    [Fact]
+    public void EvaluateTnotes_2026_Observe()
+    {
+        var maturity = 10;
+        var yield = 5.289 / 100.0;
+        var coupon = 4.625 / 100.0;
+        var faceValue = 100;
+        var marketPrice = 94.31;
+
+        var fairPrice = GetBondPrice(yield, maturity, faceValue, coupon, 2);
+        var duration = GetBondDuration(yield, maturity, faceValue, coupon, 2);
+        var durationMacaulay = GetBondMacaulayDuration(yield, maturity, faceValue, coupon, 2);
+        var convexity = GetBondConvexity(yield, maturity, faceValue, coupon, 2);
+
+        output.WriteLine(
+            $"""
+             T-Note: {maturity}Y yield {yield:P4} coupon {coupon:P4} face value {faceValue}
+             market price {marketPrice}
+             fair price {fairPrice:N4}; duration {duration:N4}; Macaulay duration {durationMacaulay:N4}; convexity {convexity:N4}
+             """);
+
+    }
+
+    [Fact]
+    public void BondPrice_ForYieldToMaturity_BackAndForth()
+    {
+        const int faceValue = 10_000;
+        const double coupon = 0.07;
+        const int maturity = 2;
+        const double yieldToMaturity = 0.09;
+        const int compoundingFrequency = 2;
+
+        var fairValue = (double y) => faceValue 
+            * (
+                Enumerable.Range(1, compoundingFrequency * maturity)
+                    .Sum(t => Math.Pow(1 + y / compoundingFrequency, -t)) * coupon / compoundingFrequency
+                + Math.Pow(1 + y / compoundingFrequency, -compoundingFrequency * maturity)
+            );
+
+        var priceForKnownYield = fairValue(yieldToMaturity);
+
+        var derivedYield = Secant.FindRoot(y => fairValue(y) - priceForKnownYield
+            , 0.05, 0.1, 0.01, 0.91, 1e-6, 1_0);
+
+        output.WriteLine($"price for known yield {priceForKnownYield:N4}; actual yield {yieldToMaturity:P}; " +
+                         $"derived yield {derivedYield:P4}");
     }
 }
