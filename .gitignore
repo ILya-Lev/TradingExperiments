@@ -364,3 +364,4 @@ FodyWeavers.xsd
 *.pdf
 /test/Udemy.Fin.Stat.Tests/TestData/DistributionLibrary.py
 *.svg
+/test/Udemy.Derivatives.Tests/Materials/fixedincome.py
