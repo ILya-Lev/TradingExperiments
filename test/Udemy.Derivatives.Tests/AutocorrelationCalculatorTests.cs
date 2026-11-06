@@ -21,6 +21,11 @@ public class AutocorrelationCalculatorTests(ITestOutputHelper output)
         var laggedAutocorrelation = lagged.GetAutocorrelationPerLag(30);
         sw.Stop();
 
+        bool mklDllLoaded = Process.GetCurrentProcess()
+            .Modules
+            .Cast<ProcessModule>()
+            .Any(m => m.ModuleName.Contains("MathNetNumericsMKL", StringComparison.OrdinalIgnoreCase));
+
         output.WriteLine($"spent {sw.Elapsed:g} calculating autocorrelations");
 
         var originalImage = PlotSeries("original", originalAutocorrelation.Select((a,i) => ((decimal) i, (decimal) a)).ToArray(), false);
