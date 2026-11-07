@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using MathNet.Numerics.Distributions;
+using MathNet.Numerics.Statistics;
 
 namespace Udemy.Derivatives.Tests;
 
@@ -27,5 +28,6 @@ public class AutocorrelationCalculatorTests(ITestOutputHelper output)
 
         output.WriteLine($"original sample autocorrelation: {originalImage.Path}");
         output.WriteLine($"lagged sample autocorrelation: {laggedImage.Path}");
+        output.WriteLine($"normal distribution excess kurtosis is {sample.Kurtosis()}; lagged {lagged.Kurtosis()}");
     }
 }

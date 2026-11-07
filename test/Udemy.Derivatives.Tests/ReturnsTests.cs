@@ -1,5 +1,6 @@
 ﻿using System.Globalization;
 using System.Text;
+using MathNet.Numerics.Statistics;
 
 namespace Udemy.Derivatives.Tests;
 
@@ -74,6 +75,8 @@ public class ReturnsTests(ITestOutputHelper output)
         var rawPlot = PlotHelper.PlotSeries($"raw autocorr of {seriesName}", rawToPlot, false);
         var absPlot = PlotHelper.PlotSeries($"abs autocorr of {seriesName}", absToPlot, false);
 
+        var returnsKurtosis = returns.Select(p => (double)p.Value).Kurtosis();
+        output.WriteLine($"returns excessive kurtosis is {returnsKurtosis}");
         output.WriteLine($"raw autocorrelations for {seriesName} => {rawPlot.Path}");
         output.WriteLine($"abs autocorrelations for {seriesName} => {absPlot.Path}");
     }
@@ -104,14 +107,13 @@ public class ReturnsTests(ITestOutputHelper output)
         while (await reader.ReadLineAsync(ct ?? CancellationToken.None) is {} row)
         {
             if (string.IsNullOrWhiteSpace(row)) continue;       //skip empty lines
-
             var rowSpan = row.AsSpan();
             
-            using var rowIterator = rowSpan.Split(",");
+            var rowIterator = rowSpan.Split(',');
             if (!rowIterator.MoveNext()) continue;              //skip lines without comas
             var date = DateOnly.ParseExact(rowSpan[rowIterator.Current], "yyyy-MM-dd", CultureInfo.InvariantCulture);
             
-            var targetPart = ReadTargetColumn(column, rowIterator, rowSpan);
+            var targetPart = ReadTargetColumn(column, ref rowIterator, rowSpan);
             if (targetPart.IsEmpty) continue;                   //skip the line if we cannot find target column
             var price = decimal.Parse(targetPart, CultureInfo.InvariantCulture);
             
@@ -123,7 +125,7 @@ public class ReturnsTests(ITestOutputHelper output)
 
     private static ReadOnlySpan<char> ReadTargetColumn(
         int targetColumn
-        , MemoryExtensions.SpanSplitEnumerator<char> rowIterator
+        , ref MemoryExtensions.SpanSplitEnumerator<char> rowIterator
         , ReadOnlySpan<char> rowSpan)
     {
         for(var currentColumn = 0; currentColumn < targetColumn; currentColumn++)
