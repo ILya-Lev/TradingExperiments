@@ -38,4 +38,17 @@
     <Using Include="Xunit" />
   </ItemGroup>
 
+
+    <ItemGroup>
+      <None Update="Materials\gbpusd_daily_ohlc_30y_1996_2026.csv">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+      <None Update="Materials\soybeans_daily_ohlc_30y_1996_2026.csv">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+      <None Update="Materials\sp500_daily_ohlc_30y_1996_2026.csv">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+    </ItemGroup>
+
 </Project>
