@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Globalization;
+using System.Text;
 
 namespace Udemy.Derivatives.Tests;
 
@@ -30,8 +31,8 @@ public class ReturnsTests(ITestOutputHelper output)
         var seriesName = Path.GetFileNameWithoutExtension(name);
 
         var series = await ReadPriceSeries(path);
-        var returns = Enumerable.Skip<KeyValuePair<DateOnly, decimal>>(series, 1)
-            .Zip(Enumerable.SkipLast<KeyValuePair<DateOnly, decimal>>(series, 1), (n, c) => (n.Key, Math.Log((double)n.Value / (double)c.Value)))
+        var returns = series.Skip(1)
+            .Zip(series.SkipLast(1), (n, c) => (n.Key, Math.Log((double)n.Value / (double)c.Value)))
             .ToDictionary(p => p.Key, p => (decimal)Math.Round(p.Item2, 4));
 
         var total = 0.0m;
@@ -41,13 +42,40 @@ public class ReturnsTests(ITestOutputHelper output)
             return total;
         });
 
-        var seriesPlot = PlotHelper.PlotSeries(seriesName, (IReadOnlyDictionary<DateOnly, decimal>)series, false);
+        var seriesPlot = PlotHelper.PlotSeries(seriesName, series, false);
         var returnsPlot = PlotHelper.PlotSeries($"returns of {seriesName}", returns, false);
         var cumulativeReturnsPlot = PlotHelper.PlotSeries($"cumulative returns of {seriesName}", cumulativeReturn, false);
 
         output.WriteLine($"{seriesName} => {seriesPlot.Path}");
         output.WriteLine($"returns of {seriesName} => {returnsPlot.Path}");
         output.WriteLine($"cumulative returns of {seriesName} => {cumulativeReturnsPlot.Path}");
+    }
+    
+    [Theory]
+    [InlineData("sp500_daily_ohlc_30y_1996_2026.csv")]
+    [InlineData("gbpusd_daily_ohlc_30y_1996_2026.csv")]
+    [InlineData("soybeans_daily_ohlc_30y_1996_2026.csv")]
+    public async Task GetReturns_GivenName_PlotAutocorrelations(string name)
+    {
+        var path = Path.Combine(Directory.GetCurrentDirectory(), "Materials", name);
+        var seriesName = Path.GetFileNameWithoutExtension(name);
+
+        var series = await ReadPriceSeries(path);
+        var returns = series.Skip(1)
+            .Zip(series.SkipLast(1), (n, c) => (n.Key, Math.Log((double)n.Value / (double)c.Value)))
+            .ToDictionary(p => p.Key, p => (decimal)Math.Round(p.Item2, 4));
+
+        var rawAutocorrelations = returns.Select(p => (double)p.Value).ToArray().GetAutocorrelationPerLag(30);
+        var absAutocorrelations = returns.Select(p => (double)Math.Abs(p.Value)).ToArray().GetAutocorrelationPerLag(30);
+
+        var rawToPlot = rawAutocorrelations.Select((a, i) => ((decimal)i, (decimal)a)).ToArray();
+        var absToPlot = absAutocorrelations.Select((a, i) => ((decimal)i, (decimal)a)).ToArray();
+
+        var rawPlot = PlotHelper.PlotSeries($"raw autocorr of {seriesName}", rawToPlot, false);
+        var absPlot = PlotHelper.PlotSeries($"abs autocorr of {seriesName}", absToPlot, false);
+
+        output.WriteLine($"raw autocorrelations for {seriesName} => {rawPlot.Path}");
+        output.WriteLine($"abs autocorrelations for {seriesName} => {absPlot.Path}");
     }
 
     /// <summary>
@@ -59,8 +87,6 @@ public class ReturnsTests(ITestOutputHelper output)
     /// <returns>selected prices (close by default) per date</returns>
     private static async Task<Dictionary<DateOnly, decimal>> ReadPriceSeries(string path, int column = 4, CancellationToken? ct = null)
     {
-        var series = new Dictionary<DateOnly, decimal>();
-        
         await using var fileStream = new FileStream(path, new FileStreamOptions()
         {
             Access = FileAccess.Read,
@@ -71,19 +97,41 @@ public class ReturnsTests(ITestOutputHelper output)
         
         using var reader = new StreamReader(fileStream, Encoding.UTF8);
         await reader.ReadLineAsync(ct ?? CancellationToken.None);//header
-        
-        while (!reader.EndOfStream)
-        {
-            var row = await reader.ReadLineAsync(ct ?? CancellationToken.None);
-            if (string.IsNullOrWhiteSpace(row))
-                continue;
 
-            var parts = row.Split(",");
-            var date = DateOnly.ParseExact(parts[0], "yyyy-MM-dd");
-            var price = decimal.Parse(parts[column]);
+        var estimatedRows = (int)(fileStream.Length / 38);
+        var series = new Dictionary<DateOnly, decimal>(estimatedRows);
+
+        while (await reader.ReadLineAsync(ct ?? CancellationToken.None) is {} row)
+        {
+            if (string.IsNullOrWhiteSpace(row)) continue;       //skip empty lines
+
+            var rowSpan = row.AsSpan();
+            
+            using var rowIterator = rowSpan.Split(",");
+            if (!rowIterator.MoveNext()) continue;              //skip lines without comas
+            var date = DateOnly.ParseExact(rowSpan[rowIterator.Current], "yyyy-MM-dd", CultureInfo.InvariantCulture);
+            
+            var targetPart = ReadTargetColumn(column, rowIterator, rowSpan);
+            if (targetPart.IsEmpty) continue;                   //skip the line if we cannot find target column
+            var price = decimal.Parse(targetPart, CultureInfo.InvariantCulture);
+            
             series.Add(date, price);
         }
 
         return series;
+    }
+
+    private static ReadOnlySpan<char> ReadTargetColumn(
+        int targetColumn
+        , MemoryExtensions.SpanSplitEnumerator<char> rowIterator
+        , ReadOnlySpan<char> rowSpan)
+    {
+        for(var currentColumn = 0; currentColumn < targetColumn; currentColumn++)
+        {
+            if (!rowIterator.MoveNext())
+                return ReadOnlySpan<char>.Empty;
+        }
+
+        return rowSpan[rowIterator.Current];
     }
 }
