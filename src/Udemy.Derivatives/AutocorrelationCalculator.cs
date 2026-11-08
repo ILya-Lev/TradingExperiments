@@ -2,11 +2,22 @@
 using MathNet.Numerics.IntegralTransforms;
 using System.Numerics;
 using System.Numerics.Tensors;
+using MathNet.Numerics.Distributions;
 
 namespace Udemy.Derivatives;
 
 public static class AutocorrelationCalculator
 {
+    public static IEnumerable<int> RandomWalkGenerator(double successProbability = 0.5)
+    {
+        var distance = 0;
+        while (true)
+        {
+            yield return distance;
+            distance += 2 * Bernoulli.Sample(successProbability) - 1;//bernoulli is either +1 (2*1 - 1 = 1) or 0 (2*0 - 1 = -1)
+        }
+    }
+
     public static IEnumerable<T> GetCumulativeReturn<T>(this IEnumerable<T> returns, int windowSize = 1)
     where T : INumber<T>
     {

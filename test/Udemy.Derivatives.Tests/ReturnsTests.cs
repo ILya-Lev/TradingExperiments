@@ -138,6 +138,18 @@ public class ReturnsTests(ITestOutputHelper output)
         output.WriteLine($"abs autocorrelations for {seriesName} => {absPlot.Path}");
     }
 
+    [Fact]
+    public void RandomWalkGenerator_2500_Plot()
+    {
+        var randomWalkSample = AutocorrelationCalculator.RandomWalkGenerator(0.5).Take(2500).ToArray();
+        
+        var toPlot = randomWalkSample.Select((a, i) => ((decimal)i, (decimal)a)).ToArray();
+
+        var plot = PlotHelper.PlotSeries($"random walk {DateTime.UtcNow:yyyyMMddTHHmmss}", toPlot, false);
+
+        output.WriteLine($"random walk {plot.Path}");
+    }
+
     /// <summary>
     /// reads a given file (by path) and parses time-series from it as dictionary - price by date
     /// </summary>
