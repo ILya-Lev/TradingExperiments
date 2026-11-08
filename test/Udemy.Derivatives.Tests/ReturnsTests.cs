@@ -1,9 +1,8 @@
-﻿using System.Globalization;
-using System.Text;
-using FluentAssertions;
+﻿using FluentAssertions;
 using FluentAssertions.Execution;
-using FluentAssertions.Extensions;
 using MathNet.Numerics.Statistics;
+using System.Globalization;
+using System.Text;
 
 namespace Udemy.Derivatives.Tests;
 
@@ -31,7 +30,7 @@ public class ReturnsTests(ITestOutputHelper output)
         var series = Enumerable.Range(1, 100).ToArray();
 
         const int windowSize = 10;
-        var sumWindow10 = series.GetCumulativeReturn(windowSize).ToArray();
+        var sumWindow10 = series.Accumulate(windowSize).ToArray();
 
         using var _ = new AssertionScope();
         var total = 55; //as the sum of the first 10 numbers is 55
@@ -123,8 +122,8 @@ public class ReturnsTests(ITestOutputHelper output)
             .ToDictionary(p => p.Key, p => (decimal)Math.Round(p.Item2, 4));
 
         //here we do aggregation to have monthly instead of daily return - 20 working days in a month
-        var rawAutocorrelations = returns.Select(p => (double)p.Value).GetCumulativeReturn(20).ToArray().GetAutocorrelationPerLag(70);
-        var absAutocorrelations = returns.Select(p => (double)Math.Abs(p.Value)).GetCumulativeReturn(20).ToArray().GetAutocorrelationPerLag(70);
+        var rawAutocorrelations = returns.Select(p => (double)p.Value).Accumulate(20).ToArray().GetAutocorrelationPerLag(70);
+        var absAutocorrelations = returns.Select(p => (double)Math.Abs(p.Value)).Accumulate(20).ToArray().GetAutocorrelationPerLag(70);
 
         var rawToPlot = rawAutocorrelations.Select((a, i) => ((decimal)i, (decimal)a)).ToArray();
         var absToPlot = absAutocorrelations.Select((a, i) => ((decimal)i, (decimal)a)).ToArray();
@@ -139,15 +138,39 @@ public class ReturnsTests(ITestOutputHelper output)
     }
 
     [Fact]
-    public void RandomWalkGenerator_2500_Plot()
+    public void GetStaticJumpRandomWalk_2500_Plot()
     {
-        var randomWalkSample = AutocorrelationCalculator.RandomWalkGenerator(0.5).Take(2500).ToArray();
+        var randomWalkSample = Generators.GetStaticJumpRandomWalk(0.5).Take(2500).ToArray();
         
         var toPlot = randomWalkSample.Select((a, i) => ((decimal)i, (decimal)a)).ToArray();
 
         var plot = PlotHelper.PlotSeries($"random walk {DateTime.UtcNow:yyyyMMddTHHmmss}", toPlot, false);
 
         output.WriteLine($"random walk {plot.Path}");
+    }
+
+    [Fact]
+    public void GetRelativeRandomWalk_2500_Plot()
+    {
+        var randomWalkSample = Generators.GetRelativeRandomWalk(0.5, 0.1m).Take(2500).ToArray();
+        
+        var toPlot = randomWalkSample.Select((a, i) => ((decimal)i, a)).ToArray();
+
+        var plot = PlotHelper.PlotSeries($"random walk {DateTime.UtcNow:yyyyMMddTHHmmss}", toPlot, false);
+
+        output.WriteLine($"random walk {plot.Path}");
+    }
+
+    [Fact]
+    public void GetScaledRandomWalk_2500_Plot()
+    {
+        var randomWalkSample = Generators.GetScaledRandomWalk(10000, 0.5);
+        
+        var toPlot = randomWalkSample.Select((a, i) => ((decimal)i, a)).ToArray();
+
+        var plot = PlotHelper.PlotSeries($"scaled random walk {DateTime.UtcNow:yyyyMMddTHHmmss}", toPlot, false);
+
+        output.WriteLine($"scaled random walk {plot.Path}");
     }
 
     /// <summary>
