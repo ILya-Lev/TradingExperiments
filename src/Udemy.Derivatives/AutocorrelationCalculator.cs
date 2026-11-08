@@ -7,6 +7,28 @@ namespace Udemy.Derivatives;
 
 public static class AutocorrelationCalculator
 {
+    public static IEnumerable<T> GetCumulativeReturn<T>(this IEnumerable<T> returns, int windowSize = 1)
+    where T : INumber<T>
+    {
+        var ringBuffer = new T[windowSize];
+        var total = T.Zero;
+        var head = 0;
+        var seenNumbers = 0L;
+
+        using var iterator = returns.GetEnumerator();
+        while (iterator.MoveNext())
+        {
+            total -= ringBuffer[head];
+            ringBuffer[head] = iterator.Current;
+            total += ringBuffer[head];
+
+            head = (head + 1) % ringBuffer.Length;
+
+            if (++seenNumbers >= ringBuffer.Length)
+                yield return total;
+        }
+    }
+
     public static IReadOnlyList<double> GetAutocorrelationPerLag(this double[] sample, int? maxLag = null)
     {
         var lags = maxLag ?? sample.Length;
@@ -59,7 +81,7 @@ public static class AutocorrelationCalculator
     {
         var autocorrelations = new double[sample.Length];
         autocorrelations[0] = 1.0;
-        
+
         //Control.TryUseNativeMKL();
         Control.UseNativeMKL();
 
@@ -68,17 +90,17 @@ public static class AutocorrelationCalculator
 
         // MathNet's Fourier.Forward(Complex[]) uses the full array.Length => it must be exactly M.
         var spectrum = new Complex[m];
-        
+
         // 1. Center the signal into the first N elements; [N..M) remain Complex.Zero
         var mean = TensorPrimitives.Average(sample);
         for (var i = 0; i < sample.Length; i++)
         {
             spectrum[i] = new Complex(sample[i] - mean, 0.0);
         }
-        
+
         // 2. In-place Forward FFT without scaling
         Fourier.Forward(spectrum, FourierOptions.NoScaling);
-        
+
         // 3. Power spectral density: |C[k]|^2 = Re^2 + Im^2
         for (var i = 0; i < m; i++)
         {
@@ -86,10 +108,10 @@ public static class AutocorrelationCalculator
             var im = spectrum[i].Imaginary;
             spectrum[i] = new Complex((re * re) + (im * im), 0.0);
         }
-        
+
         // 4. In-place Inverse FFT without scaling (1/M cancels in normalization)
         Fourier.Inverse(spectrum, FourierOptions.NoScaling);
-        
+
         // 5. Normalize by lag 0 (M * variance)
         var varianceScaled = spectrum[0].Real;
         if (varianceScaled == 0.0)
