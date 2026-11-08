@@ -173,6 +173,31 @@ public class ReturnsTests(ITestOutputHelper output)
         output.WriteLine($"scaled random walk {plot.Path}");
     }
 
+    [Fact]
+    public void GetBrownianMotion_2500_Plot()
+    {
+        var randomWalkSample = Generators.GetBrownianMotion(2, 3,2500);
+        var returns = randomWalkSample.Skip(1).Zip(randomWalkSample.SkipLast(1), (n, p) => n - p).ToArray();
+        var prices = new double[returns.Length];
+        prices[0] = 1;
+        for (var i = 1; i < prices.Length; i++)
+        {
+            prices[i] = prices[i - 1] * Math.Exp((double)returns[i]);
+        }
+
+        var walkToPlot = randomWalkSample.Select((a, i) => ((decimal)i, a)).ToArray();
+        var returnsToPlot = returns.Select((a, i) => ((decimal)i, a)).ToArray();
+        var pricesToPlot = prices.Select((a, i) => ((decimal)i, (decimal)a)).ToArray();
+
+        var walkPlot = PlotHelper.PlotSeries($"Brownian motion with drift", walkToPlot, false);
+        var returnsPlot = PlotHelper.PlotSeries($"Returns price sample (log-normal)", returnsToPlot, false);
+        var pricesPlot = PlotHelper.PlotSeries($"Log-normal price sample", pricesToPlot, false);
+
+        output.WriteLine($"Brownian motion with drift {walkPlot.Path}");
+        output.WriteLine($"Log-normal returns sample {returnsPlot.Path}");
+        output.WriteLine($"Log-normal price sample {pricesPlot.Path}");
+    }
+
     /// <summary>
     /// reads a given file (by path) and parses time-series from it as dictionary - price by date
     /// </summary>

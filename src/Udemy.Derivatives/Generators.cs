@@ -62,6 +62,19 @@ public static class Generators
         return distances;
     }
 
+    public static IReadOnlyList<decimal> GetBrownianMotion(decimal mu, decimal sigma, int sampleSize)
+    {
+        var distances = new decimal[sampleSize];
+        distances[0] = 0;
+        for (var jumpNumber = 1; jumpNumber < sampleSize; jumpNumber++)
+        {
+            var jump = (decimal)Normal.Sample(0, 1);
+            distances[jumpNumber] = jumpNumber * mu/sampleSize + sigma * jump; //+ distances[jumpNumber-1]
+        }
+
+        return distances;
+    }
+
     /// <summary>
     /// adds up values in a sliding window of the given size
     /// </summary>
