@@ -77,7 +77,7 @@ public class ReturnsTests(ITestOutputHelper output)
         output.WriteLine($"returns of {seriesName} => {returnsPlot.Path}");
         output.WriteLine($"cumulative returns of {seriesName} => {cumulativeReturnsPlot.Path}");
     }
-    
+
     [Theory]
     [InlineData("sp500_daily_ohlc_30y_1996_2026.csv")]
     [InlineData("gbpusd_daily_ohlc_30y_1996_2026.csv")]
@@ -141,7 +141,7 @@ public class ReturnsTests(ITestOutputHelper output)
     public void GetStaticJumpRandomWalk_2500_Plot()
     {
         var randomWalkSample = Generators.GetStaticJumpRandomWalk(0.5).Take(2500).ToArray();
-        
+
         var toPlot = randomWalkSample.Select((a, i) => ((decimal)i, (decimal)a)).ToArray();
 
         var plot = PlotHelper.PlotSeries($"random walk {DateTime.UtcNow:yyyyMMddTHHmmss}", toPlot, false);
@@ -153,7 +153,7 @@ public class ReturnsTests(ITestOutputHelper output)
     public void GetRelativeRandomWalk_2500_Plot()
     {
         var randomWalkSample = Generators.GetRelativeRandomWalk(0.5, 0.1m).Take(2500).ToArray();
-        
+
         var toPlot = randomWalkSample.Select((a, i) => ((decimal)i, a)).ToArray();
 
         var plot = PlotHelper.PlotSeries($"random walk {DateTime.UtcNow:yyyyMMddTHHmmss}", toPlot, false);
@@ -165,7 +165,7 @@ public class ReturnsTests(ITestOutputHelper output)
     public void GetScaledRandomWalk_2500_Plot()
     {
         var randomWalkSample = Generators.GetScaledRandomWalk(10000, 0.5);
-        
+
         var toPlot = randomWalkSample.Select((a, i) => ((decimal)i, a)).ToArray();
 
         var plot = PlotHelper.PlotSeries($"scaled random walk {DateTime.UtcNow:yyyyMMddTHHmmss}", toPlot, false);
@@ -176,13 +176,15 @@ public class ReturnsTests(ITestOutputHelper output)
     [Fact]
     public void GetBrownianMotion_2500_Plot()
     {
-        var randomWalkSample = Generators.GetBrownianMotion(2, 3,2500);
+        //2500 working days ~ 10 Y; annualized drift 8%; annualized volatility 20% => sigma = 0.2 * sqrt(10)
+        var randomWalkSample = Generators.GetBrownianMotion(0.08m, 0.63m, 2500);
+
         var returns = randomWalkSample.Skip(1).Zip(randomWalkSample.SkipLast(1), (n, p) => n - p).ToArray();
-        var prices = new double[returns.Length];
+        var prices = new double[randomWalkSample.Count];
         prices[0] = 1;
-        for (var i = 1; i < prices.Length; i++)
+        for (var i = 1; i < randomWalkSample.Count; i++)//collections size dictated by randomWalkSample (N): returns = N - 1; prices = N
         {
-            prices[i] = prices[i - 1] * Math.Exp((double)returns[i]);
+            prices[i] = prices[i - 1] * Math.Exp((double)returns[i - 1]);
         }
 
         var walkToPlot = randomWalkSample.Select((a, i) => ((decimal)i, a)).ToArray();
@@ -214,26 +216,26 @@ public class ReturnsTests(ITestOutputHelper output)
             BufferSize = 1 << 16,
             Options = FileOptions.Asynchronous | FileOptions.SequentialScan
         });
-        
+
         using var reader = new StreamReader(fileStream, Encoding.UTF8);
         await reader.ReadLineAsync(ct ?? CancellationToken.None);//header
 
         var estimatedRows = (int)(fileStream.Length / 38);
         var series = new Dictionary<DateOnly, decimal>(estimatedRows);
 
-        while (await reader.ReadLineAsync(ct ?? CancellationToken.None) is {} row)
+        while (await reader.ReadLineAsync(ct ?? CancellationToken.None) is { } row)
         {
             if (string.IsNullOrWhiteSpace(row)) continue;       //skip empty lines
             var rowSpan = row.AsSpan();
-            
+
             var rowIterator = rowSpan.Split(',');
             if (!rowIterator.MoveNext()) continue;              //skip lines without comas
             var date = DateOnly.ParseExact(rowSpan[rowIterator.Current], "yyyy-MM-dd", CultureInfo.InvariantCulture);
-            
+
             var targetPart = ReadTargetColumn(column, ref rowIterator, rowSpan);
             if (targetPart.IsEmpty) continue;                   //skip the line if we cannot find target column
             var price = decimal.Parse(targetPart, CultureInfo.InvariantCulture);
-            
+
             series.Add(date, price);
         }
 
@@ -245,7 +247,7 @@ public class ReturnsTests(ITestOutputHelper output)
         , ref MemoryExtensions.SpanSplitEnumerator<char> rowIterator
         , ReadOnlySpan<char> rowSpan)
     {
-        for(var currentColumn = 0; currentColumn < targetColumn; currentColumn++)
+        for (var currentColumn = 0; currentColumn < targetColumn; currentColumn++)
         {
             if (!rowIterator.MoveNext())
                 return ReadOnlySpan<char>.Empty;

@@ -64,12 +64,16 @@ public static class Generators
 
     public static IReadOnlyList<decimal> GetBrownianMotion(decimal mu, decimal sigma, int sampleSize)
     {
+        var scale = (decimal)Math.Sqrt(sampleSize);
+        var drift = mu / sampleSize;
+        var diffusionScaling = sigma / scale;
+
         var distances = new decimal[sampleSize];
         distances[0] = 0;
         for (var jumpNumber = 1; jumpNumber < sampleSize; jumpNumber++)
         {
             var jump = (decimal)Normal.Sample(0, 1);
-            distances[jumpNumber] = jumpNumber * mu/sampleSize + sigma * jump; //+ distances[jumpNumber-1]
+            distances[jumpNumber] = distances[jumpNumber - 1] + drift + diffusionScaling * jump;
         }
 
         return distances;
