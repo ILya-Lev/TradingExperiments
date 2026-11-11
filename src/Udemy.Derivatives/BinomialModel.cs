@@ -42,9 +42,10 @@ public class BinomialModel
     public double GetInitialCallPrice(double initialAssetPrice, double strike, int levels)
     {
         var lowerLimit = (int)Math.Ceiling( (Math.Log(strike/initialAssetPrice) - levels * Math.Log(Down)) / Math.Log(Up / Down));
-        
+        lowerLimit = Math.Max(0, lowerLimit);//should always be > 0, but there are edge cases of Down > 1 and n -> infinity
+
         var initialCallPrice = 0.0;
-        for (var j = lowerLimit; j < levels; j++)
+        for (var j = lowerLimit; j <= levels; j++)
         {
             initialCallPrice += GetBinomialFactor(levels, j)
                                 * Math.Pow(RiskFreeUp, j)
