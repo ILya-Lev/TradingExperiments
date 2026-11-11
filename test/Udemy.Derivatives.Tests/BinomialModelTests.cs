@@ -14,6 +14,28 @@ public class BinomialModelTests(ITestOutputHelper output)
     }
 
     [Fact]
+    public void GetInitialDerivativePrice_2LevelsProblem3_MatchManualCalculations()
+    {
+        var sut = new BinomialModel(1.3, .9, .04);
+        var d0 = sut.GetInitialDerivativePrice([30, 15, 25]);
+        d0.Should().BeApproximately(19.47, 1e-2);
+    }
+
+    [Fact]
+    public void GetInitialDerivativePrice_2LevelsProblem4_PutCallParityPreserved()
+    {
+        var sut = new BinomialModel(1.2, .8, .07);
+        
+        var c0 = sut.GetInitialDerivativePrice([34, 0, 0]);
+        var p0 = sut.GetInitialDerivativePrice([0, 14, 46]);
+        var f0 = sut.GetInitialDerivativePrice([34, -14, -46]);
+
+        (c0 - p0).Should().BeApproximately(f0, 1e-2);
+        output.WriteLine($"initial call {c0:N4}, put {p0:N4}, forward {f0:N4}");
+        output.WriteLine($"S(0) - K/(1+r)^2 = {100 - 110/1.07/1.07}");
+    }
+
+    [Fact]
     public void GetInitialDerivativePrice_1Level_MatchManualCalculations()
     {
         var sut = new BinomialModel(1.16, .88, .03);
