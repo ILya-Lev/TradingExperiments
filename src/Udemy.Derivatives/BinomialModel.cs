@@ -11,11 +11,16 @@ public class BinomialModel
         if (down < 0)
             throw new ArgumentException($"d < 0: {down} < 0");
 
+        Up = up;
+        Down = down;
+        InterestRate = interestRate;
+
         RiskFreeUp = (1 + interestRate - down) / (up - down);
         RiskFreeDown = (up - 1 - interestRate) / (up - down);
-        InterestRate = interestRate;
     }
 
+    public double Up { get; }
+    public double Down { get; }
     public double RiskFreeUp { get; }
     public double RiskFreeDown { get; }
     public double InterestRate { get; }
@@ -23,15 +28,32 @@ public class BinomialModel
     public double GetInitialDerivativePrice(IReadOnlyList<double> finalPayoffs)
     {
         var levels = finalPayoffs.Count - 1;
-        var d0 = finalPayoffs
+        var initialDerivativePrice = finalPayoffs
             .Select((d, i) => d 
                             * Math.Pow(RiskFreeUp, levels - i)
                             * Math.Pow(RiskFreeDown, i)
                             * GetBinomialFactor(levels, i))
             .Sum();
 
-        d0 /= Math.Pow(1 + InterestRate, levels);
-        return d0;
+        initialDerivativePrice /= Math.Pow(1 + InterestRate, levels);
+        return initialDerivativePrice;
+    }
+
+    public double GetInitialCallPrice(double initialAssetPrice, double strike, int levels)
+    {
+        var lowerLimit = (int)Math.Ceiling( (Math.Log(strike/initialAssetPrice) - levels * Math.Log(Down)) / Math.Log(Up / Down));
+        
+        var initialCallPrice = 0.0;
+        for (var j = lowerLimit; j < levels; j++)
+        {
+            initialCallPrice += GetBinomialFactor(levels, j)
+                                * Math.Pow(RiskFreeUp, j)
+                                * Math.Pow(RiskFreeDown, levels - j)
+                                * (Math.Pow(Up, j) * Math.Pow(Down, levels - j) * initialAssetPrice - strike);
+        }
+
+        initialCallPrice /= Math.Pow(1 + InterestRate, levels);
+        return initialCallPrice;
     }
 
     private static double GetBinomialFactor(int n, int i)
