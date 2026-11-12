@@ -32,4 +32,38 @@ public class BlackScholesModelTests(ITestOutputHelper output)
                 error {Math.Abs(predictedPriceChange - callPriceChange):N4}
             """);
     }
+
+    [Theory]
+    [InlineData(60, 70)]
+    [InlineData(60, 50)]
+    public void DeltaHedgingDemo_Delta_Pnl(double spotBefore, double spotAfter)
+    {
+        var scale = 200;
+        var call = new CallOption(50, 6.0 / 12);
+        
+        var bsmBefore = new BlackScholesModel(spotBefore, 0.05, 0.20);
+        var callBefore = bsmBefore.GetPrice(call, 6.0 / 12);
+        var deltaBefore = bsmBefore.GetDelta(call, 6.0 / 12);
+        var sharesPosition = Math.Ceiling(scale * deltaBefore);
+
+        var bsmAfter = new BlackScholesModel(spotAfter, 0.05, 0.20);
+        var callAfter = bsmAfter.GetPrice(call, 5.0 / 12);
+        var deltaAfter = bsmAfter.GetDelta(call, 5.0 / 12);
+
+        var oneStepPnL = scale*(callAfter - callBefore) - sharesPosition*(spotAfter - spotBefore);
+
+        output.WriteLine(
+            $"""
+                6 months before maturity spot {spotBefore}
+                    call price {callBefore:N4}
+                    delta {deltaBefore:N4}
+                    hedging position {sharesPosition}
+                
+                5 months before maturity spot {spotAfter}
+                    call price {callAfter:N4}
+                    delta {deltaAfter:N4}
+                    
+                PnL {oneStepPnL:N4}
+            """);
+    }
 }
