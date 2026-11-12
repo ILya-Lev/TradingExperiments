@@ -66,4 +66,39 @@ public class BlackScholesModelTests(ITestOutputHelper output)
                 PnL {oneStepPnL:N4}
             """);
     }
+
+    [Theory]
+    [InlineData(100, 90)]
+    [InlineData(100, 100)]//PnL is similar in all cases as mostly comes from volatility increase
+    [InlineData(100, 110)]
+    public void LongVolatilityTrading_StaticDeltaHedging_Pnl(double spotBefore, double spotAfter)
+    {
+        var scale = 1000;
+        var call = new CallOption(100, 1);
+        
+        var bsmBefore = new BlackScholesModel(spotBefore, 0.05, 0.10);
+        var callBefore = bsmBefore.GetPrice(call, 1);
+        var deltaBefore = bsmBefore.GetDelta(call, 1);
+        var sharesPosition = Math.Ceiling(scale * deltaBefore);
+
+        var bsmAfter = new BlackScholesModel(spotAfter, 0.05, 0.40);
+        var callAfter = bsmAfter.GetPrice(call, 0.5);
+        var deltaAfter = bsmAfter.GetDelta(call, 0.5);
+
+        var oneStepPnL = scale*(callAfter - callBefore) - sharesPosition*(spotAfter - spotBefore);
+
+        output.WriteLine(
+            $"""
+                12 months before maturity spot {spotBefore}
+                    call price {callBefore:N4}
+                    delta {deltaBefore:N4}
+                    hedging position {sharesPosition}
+                
+                6 months before maturity spot {spotAfter}
+                    call price {callAfter:N4}
+                    delta {deltaAfter:N4}
+                    
+                PnL {oneStepPnL:N4}
+            """);
+    }
 }
