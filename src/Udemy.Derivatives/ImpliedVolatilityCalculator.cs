@@ -16,13 +16,20 @@ public class ImpliedVolatilityCalculator
 
     public double GetImpliedVolatility(double callPrice, double strike, double timeToMaturity)
     {
+        if (Spot < callPrice)
+            throw new ArgumentException($"arbitrage condition is violated S {Spot} > C {callPrice}");
+        
+        var discountedStrike = strike * Math.Exp(-InterestRate * timeToMaturity);
+        if (callPrice < Spot - discountedStrike)
+            throw new ArgumentException(
+                $"arbitrage condition is violated S {Spot} - discounted K {discountedStrike} < C {callPrice}");
+
         var dPlus = GetDPlus(strike, timeToMaturity);
         var dMinus = GetDMinus(strike, timeToMaturity);
 
         var priceForVolatility = (double volatility)
             => Spot * Normal.CDF(0, 1, dPlus(volatility))
-               - strike * Math.Exp(-InterestRate * timeToMaturity)
-                        * Normal.CDF(0, 1, dMinus(volatility));
+               - discountedStrike * Normal.CDF(0, 1, dMinus(volatility));
 
         var f = (double volatility) => callPrice - priceForVolatility(volatility);
 
