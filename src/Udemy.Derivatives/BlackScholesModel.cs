@@ -152,21 +152,32 @@ internal class BlackScholesModelPut(
 
     public double GetDelta(Option option, double timeToMaturity)
     {
-        throw new NotImplementedException("not implemented for put yet");
+        var dPlus = dPlusGenerator(option.Strike, timeToMaturity);
+        return Normal.CDF(0, 1, dPlus) - 1;
     }
 
     public double GetGamma(Option option, double timeToMaturity)
     {
-        throw new NotImplementedException("not implemented for put yet");
+        var dPlus = dPlusGenerator(option.Strike, timeToMaturity);
+        var nPrime = nPrimeGenerator(dPlus);
+        return nPrime / Spot / Volatility / Math.Sqrt(timeToMaturity);
     }
 
     public double GetVega(Option option, double timeToMaturity)
     {
-        throw new NotImplementedException("not implemented for put yet");
+        var dPlus = dPlusGenerator(option.Strike, timeToMaturity);
+        var nPrime = nPrimeGenerator(dPlus);
+        return Spot * nPrime * Math.Sqrt(timeToMaturity);
     }
 
     public double GetTheta(Option option, double timeToMaturity)
     {
-        throw new NotImplementedException("not implemented for put yet");
+        var dPlus = dPlusGenerator(option.Strike, timeToMaturity);
+        var dMinus = dMinusGenerator(option.Strike, timeToMaturity);
+        var nPrime = nPrimeGenerator(dPlus);
+
+        return -Spot * nPrime * Volatility / 2 / Math.Sqrt(timeToMaturity)
+               - option.Strike * InterestRate * Math.Exp(-InterestRate * timeToMaturity)
+               * (Normal.CDF(0, 1, dMinus) - 1);
     }
 }

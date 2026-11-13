@@ -6,6 +6,8 @@
         <Nullable>enable</Nullable>
         <IsPackable>false</IsPackable>
         <TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>
+        <LangVersion>preview</LangVersion>
+        <Features>runtime-async=on</Features>
     </PropertyGroup>
 
     <ItemGroup>
