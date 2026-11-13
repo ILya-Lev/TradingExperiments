@@ -122,6 +122,7 @@ public class BlackScholesModelTests(ITestOutputHelper output)
 
         output.WriteLine(
             $"""
+            call price {bsm.GetPrice(call, 0.5):N4}
             delta {delta:N4}
             gamma {gamma:N4}
             vega {vega:N4}
@@ -208,6 +209,38 @@ public class BlackScholesModelTests(ITestOutputHelper output)
                      
                  PnL {oneStepPnL:N4}
              """);
+    }
+
+    [Theory]
+    [InlineData(100, 5, 100, 18.0230, 1, 40)]
+    [InlineData(100, 5, 100, 4.1923, 0.5,10)]
+    [InlineData(110, 5, 100, 12.6024, 0.5, 10)]
+    [InlineData(90, 5, 100, 0.4226, 0.5, 10)]
+    [InlineData(110, 4, 105, 11.8802, 1, 15)]
+    [InlineData(100, 4, 105, 4.3340, .75, 15)]
+    [InlineData(120, 4, 105, 18.8155, .75, 15)]
+    [InlineData(72, 4, 60, 13.5028, .5, 20)]
+    [InlineData(60, 5, 50, 11.4762, .5, 20)]
+    [InlineData(70, 5, 50, 21.0373, 5.0/12, 20)]
+    [InlineData(50, 5, 50, 3.0953, 5.0/12, 20)]
+    public void GetImpliedVolatility_FromExamplesAbove_MatchExpected(
+        double spot,
+        double interestRate,
+        double strike, 
+        double callPrice, 
+        double timeToMaturity,
+        double expectedVolatility)
+    {
+        var calculator = new ImpliedVolatilityCalculator(spot, interestRate/100.0);
+
+        var impliedVolatility = calculator.GetImpliedVolatility(callPrice, strike, timeToMaturity);
+
+        impliedVolatility.Should().BeApproximately(expectedVolatility/100.0, 1e-3);
+        output.WriteLine
+        (
+            $"S {spot}, r {interestRate / 100.0:N2}, K {strike}, T-t {timeToMaturity}, C {callPrice:N4}" +
+            $", ev {expectedVolatility / 100.0:N2} vs iv {impliedVolatility:N6}"
+        );
     }
 
 }
