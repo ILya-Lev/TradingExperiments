@@ -144,34 +144,35 @@ public class BlackScholesModelTests(ITestOutputHelper output)
         var delta = initialBsm.GetDelta(call, 1);
         var gamma = initialBsm.GetGamma(call, 1);
         var hedgePosition = (int)Math.Ceiling(callPosition * delta);
-        var gammaHedgePosition = (int)Math.Ceiling(callPosition * (delta - gamma * initialSpot/2));
+        //to include gamma into the account either use 2 options (like in convexity hedging of bonds)
+        //or do dynamic delta hedging for short time intervals (i.e., daily, although transaction cost might make it useless)
+        //var gammaHedgePosition = callPosition * (delta + gamma * initialSpot/2);
 
         var finalBsm = new BlackScholesModel(finalSpot, 0.04, 0.15);
         var finalCallValue = finalBsm.GetPrice(call, 9.0 / 12);
 
         var pnl = callPosition * (finalCallValue - initialCallValue) - hedgePosition * (finalSpot - initialSpot);
-        var pnlGamma = callPosition * (finalCallValue - initialCallValue) - gammaHedgePosition * (finalSpot - initialSpot);
+        //var pnlGamma = callPosition * (finalCallValue - initialCallValue) - gammaHedgePosition * (finalSpot - initialSpot);
 
         output.WriteLine(
-            $"""
+            $$"""
             initial state: 
-                call position {callPosition}
-                call price {initialCallValue:N4}
-                delta {delta:N4}
-                hedge position {hedgePosition}
-                spot price {initialSpot}
+                call position {{callPosition}}
+                call price {{initialCallValue:N4}}
+                delta {{delta:N4}}
+                gamma {gamma:N4}
+                hedge position {{hedgePosition}}
+                spot price {{initialSpot}}
                 
             3 months later state:
-                call price {finalCallValue:N4}
-                spot price {finalSpot}
+                call price {{finalCallValue:N4}}
+                spot price {{finalSpot}}
             
-            PnL {pnl:N4}
-            
-            with gamma in mind
-                gamma {gamma:N4}
-                gamma hedge position {gammaHedgePosition}
-                PnL with gamma {pnlGamma:N4}
+            PnL {{pnl:N4}}
             """);
+        /*with gamma in mind
+             gamma hedge position {gammaHedgePosition:N4}
+             PnL with gamma {pnlGamma:N4}*/
     }
 
     [Theory]
@@ -241,6 +242,53 @@ public class BlackScholesModelTests(ITestOutputHelper output)
             $"S {spot}, r {interestRate / 100.0:N2}, K {strike}, T-t {timeToMaturity}, C {callPrice:N4}" +
             $", ev {expectedVolatility / 100.0:N2} vs iv {impliedVolatility:N6}"
         );
+    }
+
+
+    [Fact]
+    public void DeltaExposure_ComputationalProblemSet3_2_Observe()
+    {
+        var scale = 100;
+        var spot = 160;
+        var call = new CallOption(spot, 2 / 12.0);//here strike = spot, as currently the call is at the money
+        var bsm = new BlackScholesModel(spot, 0.06, 0.15);
+
+        var callPrice = bsm.GetPrice(call, 2.0 / 12);
+        var enterPosition = scale * callPrice;
+        var underlyingCost = spot * scale;
+
+        output.WriteLine($"enter options position {enterPosition:N4} vs enter underlying position {underlyingCost:N4}");
+
+        var delta = bsm.GetDelta(call, 2.0 / 12);
+        var ds1 = 10;
+        var estimatedCallChangeUp = ds1 * delta;
+        var actualCallChangeUp = bsm.GetPrice(call, 1.0 / 12, spot + ds1) - callPrice;
+        var delta1 = bsm.GetDelta(call, 1.0 / 12, spot + ds1);
+        var ds2 = -10;
+        var estimatedCallChangeDown = ds2 * delta;
+        var actualCallChangeDown = bsm.GetPrice(call, 1.0 / 12, spot + ds2) - callPrice;
+        var delta2 = bsm.GetDelta(call, 1.0 / 12, spot + ds2);
+
+        output.WriteLine(
+            $"""
+            delta {delta:N4}
+            up {ds1} => estimated {estimatedCallChangeUp:N4} vs real {actualCallChangeUp:N4} jump; new delta {delta1:N4}
+            down {ds2} => estimated {estimatedCallChangeDown:N4} vs real {actualCallChangeDown:N4} jump; new delta {delta2:N4}
+            """);
+
+        var spotRange = Enumerable.Range(130, 61).Select(s => (double)s).ToArray();
+        var callRange = spotRange.Select(s => bsm.GetPrice(call, 2.0 / 12, s)).ToArray();
+        var points = spotRange.Zip(callRange, (s, c) => ((decimal)s, (decimal)c)).ToArray();
+        var plot = PlotHelper.PlotSeries("call vs spot price", points, false);
+        //output.WriteLine($"call vs spot price {plot.Path}");
+
+        var theta = bsm.GetTheta(call, 2.0 / 12);
+        var callInOneMonth = bsm.GetPrice(call, 1.0 / 12);
+        var timeDecayExpected = callPrice + theta * 1.0 / 12;
+        output.WriteLine($"theta {theta:N4}; expected time decay {timeDecayExpected:N4} vs recalculated {callInOneMonth:N4}");
+
+        var vega = bsm.GetVega(call, 2.0 / 12);
+        output.WriteLine($"vega {vega:N4}");
     }
 
 }

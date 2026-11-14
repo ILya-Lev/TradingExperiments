@@ -10,11 +10,11 @@ public record PutOption(double Strike, double MaturityYears) : Option(Strike, Ma
 
 public interface IBlackScholesModel
 {
-    double GetPrice(Option option, double timeToMaturity);
-    double GetDelta(Option option, double timeToMaturity);
-    double GetGamma(Option option, double timeToMaturity);
-    double GetVega(Option option, double timeToMaturity);
-    double GetTheta(Option option, double timeToMaturity);
+    double GetPrice(Option option, double timeToMaturity, double? spot = null);
+    double GetDelta(Option option, double timeToMaturity, double? spot = null);
+    double GetGamma(Option option, double timeToMaturity, double? spot = null);
+    double GetVega(Option option, double timeToMaturity, double? spot = null);
+    double GetTheta(Option option, double timeToMaturity, double? spot = null);
 }
 
 public class BlackScholesModel : IBlackScholesModel
@@ -41,27 +41,27 @@ public class BlackScholesModel : IBlackScholesModel
     /// if the option expires in 6M, and you want to know the price now (t=0), provide 6M = 0.5
     /// if you want to know the price in 1M, provide 5M = 5/12.0
     /// </summary>
-    public double GetPrice(Option option, double timeToMaturity)
-        => _modelsByType[option.GetType()].GetPrice(option, timeToMaturity);
+    public double GetPrice(Option option, double timeToMaturity, double? spot = null)
+        => _modelsByType[option.GetType()].GetPrice(option, timeToMaturity, spot);
 
-    public double GetDelta(Option option, double timeToMaturity)
-        => _modelsByType[option.GetType()].GetDelta(option, timeToMaturity);
+    public double GetDelta(Option option, double timeToMaturity, double? spot = null)
+        => _modelsByType[option.GetType()].GetDelta(option, timeToMaturity, spot);
 
-    public double GetGamma(Option option, double timeToMaturity)
-    => _modelsByType[option.GetType()].GetGamma(option, timeToMaturity);
+    public double GetGamma(Option option, double timeToMaturity, double? spot = null)
+    => _modelsByType[option.GetType()].GetGamma(option, timeToMaturity, spot);
 
-    public double GetVega(Option option, double timeToMaturity)
-        => _modelsByType[option.GetType()].GetVega(option, timeToMaturity);
+    public double GetVega(Option option, double timeToMaturity, double? spot = null)
+        => _modelsByType[option.GetType()].GetVega(option, timeToMaturity, spot);
 
-    public double GetTheta(Option option, double timeToMaturity)
-        => _modelsByType[option.GetType()].GetTheta(option, timeToMaturity);
+    public double GetTheta(Option option, double timeToMaturity, double? spot = null)
+        => _modelsByType[option.GetType()].GetTheta(option, timeToMaturity, spot);
 
 
-    private double GetDMinus(double strike, double timeToMaturity)
-        => GetDPlus(strike, timeToMaturity) - Volatility * Math.Sqrt(timeToMaturity);
+    private double GetDMinus(double strike, double timeToMaturity, double? spot = null)
+        => GetDPlus(strike, timeToMaturity, spot) - Volatility * Math.Sqrt(timeToMaturity);
 
-    private double GetDPlus(double strike, double timeToMaturity)
-        => (Math.Log(Spot / strike) + (InterestRate + Volatility * Volatility / 2) * timeToMaturity)
+    private double GetDPlus(double strike, double timeToMaturity, double? spot = null)
+        => (Math.Log((spot ?? Spot) / strike) + (InterestRate + Volatility * Volatility / 2) * timeToMaturity)
            / Volatility
            / Math.Sqrt(timeToMaturity);
 
@@ -72,8 +72,8 @@ internal class BlackScholesModelCall(
     double spot,
     double interestRate,
     double volatility,
-    Func<double, double, double> dPlusGenerator,
-    Func<double, double, double> dMinusGenerator,
+    Func<double, double, double?, double> dPlusGenerator,
+    Func<double, double, double?, double> dMinusGenerator,
     Func<double, double> nPrimeGenerator) : IBlackScholesModel
 {
     public double Spot { get; } = spot;
@@ -84,42 +84,42 @@ internal class BlackScholesModelCall(
     /// if the option expires in 6M, and you want to know the price now (t=0), provide 6M = 0.5
     /// if you want to know the price in 1M, provide 5M = 5/12.0
     /// </summary>
-    public double GetPrice(Option option, double timeToMaturity)
+    public double GetPrice(Option option, double timeToMaturity, double? spot = null)
     {
-        var dPlus = dPlusGenerator(option.Strike, timeToMaturity);
-        var dMinus = dMinusGenerator(option.Strike, timeToMaturity);
+        var dPlus = dPlusGenerator(option.Strike, timeToMaturity, spot);
+        var dMinus = dMinusGenerator(option.Strike, timeToMaturity, spot);
 
-        return Spot * Normal.CDF(0, 1, dPlus)
+        return (spot ?? Spot) * Normal.CDF(0, 1, dPlus)
                - option.Strike * Math.Exp(-InterestRate * timeToMaturity) * Normal.CDF(0, 1, dMinus);
     }
 
-    public double GetDelta(Option option, double timeToMaturity)
+    public double GetDelta(Option option, double timeToMaturity, double? spot = null)
     {
-        var dPlus = dPlusGenerator(option.Strike, timeToMaturity);
+        var dPlus = dPlusGenerator(option.Strike, timeToMaturity, spot);
         return Normal.CDF(0, 1, dPlus);
     }
 
-    public double GetGamma(Option option, double timeToMaturity)
+    public double GetGamma(Option option, double timeToMaturity, double? spot = null)
     {
-        var dPlus = dPlusGenerator(option.Strike, timeToMaturity);
+        var dPlus = dPlusGenerator(option.Strike, timeToMaturity, spot);
         var nPrime = nPrimeGenerator(dPlus);
-        return nPrime / Volatility / Spot / Math.Sqrt(timeToMaturity);
+        return nPrime / Volatility / (spot ?? Spot) / Math.Sqrt(timeToMaturity);
     }
 
-    public double GetVega(Option option, double timeToMaturity)
+    public double GetVega(Option option, double timeToMaturity, double? spot = null)
     {
-        var dPlus = dPlusGenerator(option.Strike, timeToMaturity);
+        var dPlus = dPlusGenerator(option.Strike, timeToMaturity, spot);
         var nPrime = nPrimeGenerator(dPlus);
-        return Spot * Math.Sqrt(timeToMaturity) * nPrime;
+        return (spot ?? Spot) * Math.Sqrt(timeToMaturity) * nPrime;
     }
 
-    public double GetTheta(Option option, double timeToMaturity)
+    public double GetTheta(Option option, double timeToMaturity, double? spot = null)
     {
-        var dPlus = dPlusGenerator(option.Strike, timeToMaturity);
-        var dMinus = dMinusGenerator(option.Strike, timeToMaturity);
+        var dPlus = dPlusGenerator(option.Strike, timeToMaturity, spot);
+        var dMinus = dMinusGenerator(option.Strike, timeToMaturity, spot);
         var nPrime = nPrimeGenerator(dPlus);
 
-        return -Spot * Volatility * nPrime / 2 / Math.Sqrt(timeToMaturity)
+        return -(spot ?? Spot) * Volatility * nPrime / 2 / Math.Sqrt(timeToMaturity)
                - option.Strike * InterestRate * Math.Exp(-InterestRate * timeToMaturity)
                * Normal.CDF(0, 1, dMinus);
     }
@@ -127,10 +127,10 @@ internal class BlackScholesModelCall(
 
 internal class BlackScholesModelPut(
     double spot,
-    double interestRate, 
+    double interestRate,
     double volatility,
-    Func<double, double, double> dPlusGenerator,
-    Func<double, double, double> dMinusGenerator,
+    Func<double, double, double?, double> dPlusGenerator,
+    Func<double, double, double?, double> dMinusGenerator,
     Func<double, double> nPrimeGenerator) : IBlackScholesModel
 {
     public double Spot { get; } = spot;
@@ -141,42 +141,42 @@ internal class BlackScholesModelPut(
     /// if the option expires in 6M, and you want to know the price now (t=0), provide 6M = 0.5
     /// if you want to know the price in 1M, provide 5M = 5/12.0
     /// </summary>
-    public double GetPrice(Option option, double timeToMaturity)
+    public double GetPrice(Option option, double timeToMaturity, double? spot = null)
     {
-        var dPlus = dPlusGenerator(option.Strike, timeToMaturity);
-        var dMinus = dMinusGenerator(option.Strike, timeToMaturity);
+        var dPlus = dPlusGenerator(option.Strike, timeToMaturity, spot);
+        var dMinus = dMinusGenerator(option.Strike, timeToMaturity, spot);
 
-        return -Spot * Normal.CDF(0, 1, -dPlus)
+        return -(spot ?? Spot) * Normal.CDF(0, 1, -dPlus)
                + option.Strike * Math.Exp(-InterestRate * timeToMaturity) * Normal.CDF(0, 1, -dMinus);
     }
 
-    public double GetDelta(Option option, double timeToMaturity)
+    public double GetDelta(Option option, double timeToMaturity, double? spot = null)
     {
-        var dPlus = dPlusGenerator(option.Strike, timeToMaturity);
+        var dPlus = dPlusGenerator(option.Strike, timeToMaturity, spot);
         return Normal.CDF(0, 1, dPlus) - 1;
     }
 
-    public double GetGamma(Option option, double timeToMaturity)
+    public double GetGamma(Option option, double timeToMaturity, double? spot = null)
     {
-        var dPlus = dPlusGenerator(option.Strike, timeToMaturity);
+        var dPlus = dPlusGenerator(option.Strike, timeToMaturity, spot);
         var nPrime = nPrimeGenerator(dPlus);
-        return nPrime / Spot / Volatility / Math.Sqrt(timeToMaturity);
+        return nPrime / (spot ?? Spot) / Volatility / Math.Sqrt(timeToMaturity);
     }
 
-    public double GetVega(Option option, double timeToMaturity)
+    public double GetVega(Option option, double timeToMaturity, double? spot = null)
     {
-        var dPlus = dPlusGenerator(option.Strike, timeToMaturity);
+        var dPlus = dPlusGenerator(option.Strike, timeToMaturity, spot);
         var nPrime = nPrimeGenerator(dPlus);
-        return Spot * nPrime * Math.Sqrt(timeToMaturity);
+        return (spot ?? Spot) * nPrime * Math.Sqrt(timeToMaturity);
     }
 
-    public double GetTheta(Option option, double timeToMaturity)
+    public double GetTheta(Option option, double timeToMaturity, double? spot = null)
     {
-        var dPlus = dPlusGenerator(option.Strike, timeToMaturity);
-        var dMinus = dMinusGenerator(option.Strike, timeToMaturity);
+        var dPlus = dPlusGenerator(option.Strike, timeToMaturity, spot);
+        var dMinus = dMinusGenerator(option.Strike, timeToMaturity, spot);
         var nPrime = nPrimeGenerator(dPlus);
 
-        return -Spot * nPrime * Volatility / 2 / Math.Sqrt(timeToMaturity)
+        return -(spot ?? Spot) * nPrime * Volatility / 2 / Math.Sqrt(timeToMaturity)
                - option.Strike * InterestRate * Math.Exp(-InterestRate * timeToMaturity)
                * (Normal.CDF(0, 1, dMinus) - 1);
     }
