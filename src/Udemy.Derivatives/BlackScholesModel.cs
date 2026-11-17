@@ -2,21 +2,6 @@
 
 namespace Udemy.Derivatives;
 
-public record Option(double Strike, double MaturityYears);
-
-public record CallOption(double Strike, double MaturityYears) : Option(Strike, MaturityYears);
-
-public record PutOption(double Strike, double MaturityYears) : Option(Strike, MaturityYears);
-
-public interface IBlackScholesModel
-{
-    double GetPrice(Option option, double timeToMaturity, double? spot = null);
-    double GetDelta(Option option, double timeToMaturity, double? spot = null);
-    double GetGamma(Option option, double timeToMaturity, double? spot = null);
-    double GetVega(Option option, double timeToMaturity, double? spot = null);
-    double GetTheta(Option option, double timeToMaturity, double? spot = null);
-}
-
 public class BlackScholesModel : IBlackScholesModel
 {
     private readonly IReadOnlyDictionary<Type, IBlackScholesModel> _modelsByType;
