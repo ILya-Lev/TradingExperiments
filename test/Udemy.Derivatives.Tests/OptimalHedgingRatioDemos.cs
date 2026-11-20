@@ -2,13 +2,57 @@
 using FluentAssertions.Execution;
 using MathNet.Numerics.Statistics;
 using System.Numerics;
-using static Udemy.Derivatives.Tests.OptimalHedgingRatioDemos;
 
 namespace Udemy.Derivatives.Tests;
 
 [Trait("Category", "Unit")]
 public class OptimalHedgingRatioDemos(ITestOutputHelper output)
 {
+    [Theory]
+    [InlineData(900, 902)]
+    [InlineData(950, 952)]
+    [InlineData(1000, 1003)]
+    [InlineData(1050, 1053)]
+    [InlineData(1100, 1103)]
+    public void HedgeWithBeta_SystematicRisk_Observe(double index, double futures)
+    {
+        var portfolioValue = 5_050_000;
+        var contractSize = 250;
+        var beta = 1.5;
+        var riskFreeRate = 0.04;//annually
+        var dividendYield = 0.01;//annually
+        var period = 3 / 12.0;//3 months
+        var initialIndexLevel = 1_000d;
+        var initialFuturesPrice = 1_010d;
+
+        var optimalHedgeSize = beta * portfolioValue / contractSize / initialFuturesPrice;
+
+        var futuresPnl = -optimalHedgeSize * contractSize * (futures - initialFuturesPrice);//- as short
+
+        var returnOnIndex = (index / initialIndexLevel - 1) + dividendYield * period;
+        var expectedPortfolioReturn = riskFreeRate * period + beta * (returnOnIndex - riskFreeRate * period);
+
+        var portfolioPosition = portfolioValue * (1 + expectedPortfolioReturn);
+
+        var finalValue = portfolioPosition + futuresPnl;
+
+        output.WriteLine($"""
+                            index from {initialIndexLevel} to {index} in period {period} Y
+                            futures from {initialFuturesPrice} to {futures} over the same period
+                            risk free rate {riskFreeRate:P} and dividends {dividendYield:P}
+                            beta {beta}
+                            estimated risk free rate = {Math.Log(initialFuturesPrice/initialIndexLevel)/period:P4}
+                            initial basis = {initialIndexLevel - initialFuturesPrice}
+                            final basis = {index - futures}
+                            
+                            optimal hedge size {optimalHedgeSize:N4}
+                            futures PnL {futuresPnl:N4}
+                            expected return on portfolio {expectedPortfolioReturn:P4}
+                            portfolio position {portfolioPosition:N4}
+                            final value {finalValue:N4}
+                         """);
+    }
+
     [Fact]
     public void OptimalHedgeRatio_Example33_Observe()
     {
@@ -91,7 +135,7 @@ public class OptimalHedgingRatioDemos(ITestOutputHelper output)
             MeanRhs = T.Zero;
             VarianceLhs = T.Zero;
             VarianceRhs = T.Zero;
-            
+
             using var lhsIterator = lhs.GetEnumerator();
             using var rhsIterator = rhs.GetEnumerator();
 
@@ -122,7 +166,7 @@ public class OptimalHedgingRatioDemos(ITestOutputHelper output)
                 throw new ArgumentOutOfRangeException(nameof(lhs), "The array arguments must have the same length.");
 
             CorrelationSquared = (Covariance / VarianceLhs) * (Covariance / VarianceRhs);
-            
+
             var sampleCount = Count;
             sampleCount--;
             VarianceLhs /= sampleCount;
